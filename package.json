@@ -2,7 +2,7 @@
   "name": "intrahealth-adapter",
   "version": "1.0.0",
   "description": "Node.js API to syncrhonize JSON messages",
-  "main": "app.js",
+  "main": "index.js",
   "dependencies": {
     "ajv": "^6.6.2",
     "async": "^2.6.1",
@@ -18,16 +18,23 @@
     "depcheck": "^0.6.11",
     "eslint": "^5.12.0",
     "eslint-config-airbnb": "^17.1.0",
+    "eslint-plugin-import": "^2.14.0",
     "mocha": "^5.2.0"
   },
   "scripts": {
-    "test": "mocha"
+    "depcheck": "depcheck",
+    "doc": "jsdoc -c jsdoc.json",
+    "lint": "eslint **/*.js",
+    "start": "node index.js",
+    "test": "istanbul cover --report lcov --include-all-sources node_modules/mocha/bin/_mocha -- ./test/*.spec.js",
+    "build": "pkg . --out-path ./build/",
+    "clean": "rm -rf ./build"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/DanFerree/intrahealth-adapter.git"
   },
-  "author": "Dan Ferree",
+  "author": "Dan Ferree <dan2372@gmail.com>",
   "license": "GPL-3.0",
   "bugs": {
     "url": "https://github.com/DanFerree/intrahealth-adapter/issues"
