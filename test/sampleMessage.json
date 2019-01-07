@@ -65,16 +65,6 @@
     "patient_emr_id": "4B3188F376E4DD46AC373F4455B6F1FB"
   },
   {
-    "record_type": "State",
-    "emr_id": "4B3188F376E4DD46AC373F4455B6F1FB\\Address_Home",
-    "emr_reference": "",
-    "operation": "active",
-    "effective_date": "2018-10-01T15:31:29.6680000",
-    "record_emr_id": "4B3188F376E4DD46AC373F4455B6F1FB\\Address_Home",
-    "record_type": "entry",
-    "state": "active"
-  },
-  {
     "message_type": "Entry Attribute",
     "entry_emr_id": "4B3188F376E4DD46AC373F4455B6F1FB\\Address_Home",
     "emr_id": "4B3188F376E4DD46AC373F4455B6F1FB\\Address_Home\\001.006",
@@ -93,5 +83,5 @@
     "attribute_id": 1.007,
     "emr_effective_date": "2018-10-01T22:31:29.6680000Z",
     "text_value": "New Zealand"
-  },
+  }
 ]

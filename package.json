@@ -28,7 +28,9 @@
     "start": "node index.js",
     "test": "istanbul cover --report lcov --include-all-sources node_modules/mocha/bin/_mocha -- ./test/*.spec.js",
     "build": "pkg . --out-path ./build/",
-    "clean": "rm -rf ./build"
+    "clean": "rm -rf ./build",
+    "stylecheck": "eslint **/*.js",
+    "check": "run audit, outdated, eslint and depcheck"
   },
   "repository": {
     "type": "git",
