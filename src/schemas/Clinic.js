@@ -19,18 +19,23 @@ const schema = {
     },
     name: {
       type: 'string',
+      description: 'The name of the clinic.',
     },
     hdc_reference: {
       type: 'string',
+      description: 'Uniquely identifies the clinic to HDC. This value will be generated and provided by HDC.',
     },
     emr_id: {
       type: 'string',
+      description: 'The unique identifier of the source record within the EMR.',
     },
     emr_reference: {
       type: 'string',
+      description: 'No set purpose. For use by the EMR adapter.',
     },
     emr: {
       type: 'string',
+      description: 'Name of the EMR that this clinic is using (e.g. Med Access, MOIS, Oscar, Profile).',
     },
     operation: {
       $ref: 'shared.json#/definitions/operation',
