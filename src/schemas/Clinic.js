@@ -11,13 +11,11 @@ const schema = {
     'name',
     'hdc_reference',
     'emr',
+    'operation',
   ],
   properties: {
     message_type: {
       $ref: 'shared.json#/definitions/message_type',
-    },
-    id: {
-      $ref: 'shared.json#/definitions/id',
     },
     name: {
       type: 'string',
