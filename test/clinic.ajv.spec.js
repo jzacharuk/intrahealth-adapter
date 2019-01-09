@@ -4,11 +4,14 @@ const chai = require('chai');
 // const { assert } = chai.assert;
 const assert = chai.assert;
 
-const clinic = require('../src/schemas/Clinic');
+const validator = require('../src/validator');
 
 describe('Clinic JSON validation scenarios', () => {
+  before('load schemas in validator ', () => {
+    validator.loadSchemas();
+  });
   it('should respond with success for valid JSON', () => {
-    const valid = clinic.validate({
+    const valid = validator.validate({
       message_type: 'Clinic',
       emr_id: '439946DE1FEE4529B9A2D90533F811C6',
       emr_reference: '',
@@ -21,13 +24,13 @@ describe('Clinic JSON validation scenarios', () => {
     assert.isTrue(valid.success);
   });
   it('should respond with error for invalid JSON', () => {
-    const valid = clinic.validate({
-      message_type: 'Not a message_type',
+    const valid = validator.validate({
+      message_type: 'Clinic',
       emr_id: '439946DE1FEE4529B9A2D90533F811C6',
       emr_reference: '',
       operation: 'active',
       emr: 'EMR Name',
-      hdc_reference: 'PRAC1',
+      no_hdc_reference: 'PRAC1',
       name: 'Clinic One',
     });
 
