@@ -1,0 +1,35 @@
+{
+  "$id": "PatientPractitioner.json",
+  "type": "object",
+  "required": [
+    "message_type",
+    "patient_emr_id",
+    "practitioner_emr_id",
+    "emr_id",
+    "operation"
+  ],
+  "properties": {
+    "message_type": {
+      "$ref": "Shared.json#/definitions/message_type"
+    },
+    "patient_emr_id": {
+      "type": "string",
+      "description": "Refers to a patient."
+    },
+    "practitioner_emr_id": {
+      "type": "string",
+      "description": "Refers to the primary practitioner."
+    },
+    "emr_id": {
+      "type": "string",
+      "description": "The unique identifier of the source record within the EMR."
+    },
+    "emr_reference": {
+      "type": "string",
+      "description": "No set purpose. For use by the EMR adapter."
+    },
+    "operation": {
+      "$ref": "Shared.json#/definitions/operation"
+    }
+  }
+}

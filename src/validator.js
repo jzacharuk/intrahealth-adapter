@@ -18,6 +18,7 @@ const loadSchemas = () => {
         try {
           const schemaFile = fs.readFileSync(path.join(schemaDir, filename), 'utf-8');
           schemaArray.push(JSON.parse(schemaFile));
+          // TODO also create a list of valid schemas
         } catch (error) {
           /* callback(err); */
         }
@@ -47,8 +48,17 @@ const validate = (json2bvalidated) => {
       results.errors = [error];
     }
   }
-  // TODO handle Array type to be whole message
-  const msgType = `${json2validate.message_type}.json`;
+  let msgType = '';
+
+  if (Array.isArray(json2validate)) {
+    msgType = 'APIRequest.json';
+  } else if (json2validate.message_type === 'Entry Attribute') {
+    msgType = 'Attribute.json';
+  } else {
+    msgType = `${json2validate.message_type}.json`;
+  }
+
+  // TODO verify message_type up front to be sure schema is found
   validateFunction = ajv.getSchema(msgType);
   const valid = validateFunction(json2validate);
 

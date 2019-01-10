@@ -1,0 +1,40 @@
+{
+  "$id": "Entry.json",
+  "type": "object",
+  "required": [
+    "message_type",
+    "patient_emr_id",
+    "emr_table",
+    "emr_id",
+    "entry_type_id",
+    "operation"
+  ],
+  "properties": {
+    "message_type": {
+      "$ref": "Shared.json#/definitions/message_type"
+    },
+    "patient_emr_id": {
+      "type": "string",
+      "description": "Refers to the patient that this entry pertains to."
+    },
+    "emr_table": {
+      "type": "string",
+      "description": "The table that is the primary source of the record within the EMR."
+    },
+    "emr_id": {
+      "type": "string",
+      "description": "The unique identifier of the source record within the EMR."
+    },
+    "emr_reference": {
+      "type": "string",
+      "description": "No set purpose. For use by the EMR adapter."
+    },
+    "entry_type_id": {
+      "type": "string",
+      "description": "This will refer to the type of entry (e.g. 14)."
+    },
+    "operation": {
+      "$ref": "Shared.json#/definitions/operation"
+    }
+  }
+}

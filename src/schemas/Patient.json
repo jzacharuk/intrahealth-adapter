@@ -1,0 +1,30 @@
+{
+  "$id": "Patient.json",
+  "type": "object",
+  "required": [
+    "message_type",
+    "clinic_emr_id",
+    "emr_id",
+    "operation"
+  ],
+  "properties": {
+    "message_type": {
+      "$ref": "Shared.json#/definitions/message_type"
+    },
+    "clinic_emr_id": {
+      "type": "string",
+      "description": "Refers to the clinic that was the source for the patient record."
+    },
+    "emr_id": {
+      "type": "string",
+      "description": "The unique identifier of the source record within the EMR."
+    },
+    "emr_reference": {
+      "type": "string",
+      "description": "No set purpose. For use by the EMR adapter."
+    },
+    "operation": {
+      "$ref": "Shared.json#/definitions/operation"
+    }
+  }
+}

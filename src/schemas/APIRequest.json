@@ -1,0 +1,28 @@
+{
+  "$id": "APIRequest.json",
+  "type": "array",
+  "items": {
+    "oneOf": [{
+        "$ref": "Clinic.json#"
+      },
+      {
+        "$ref": "Practitioner.json#"
+      },
+      {
+        "$ref": "Patient.json#"
+      },
+      {
+        "$ref": "PatientPractitioner.json#"
+      },
+      {
+        "$ref": "Entry.json#"
+      },
+      {
+        "$ref": "Attribute.json#"
+      },
+      {
+        "$ref": "State.json#"
+      }
+    ]
+  }
+}

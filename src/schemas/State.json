@@ -1,0 +1,46 @@
+{
+  "$id": "State.json",
+  "type": "object",
+  "required": [
+    "message_type",
+    "record_type",
+    "record_emr_id",
+    "state",
+    "effective_date",
+    "emr_id",
+    "operation"
+  ],
+  "properties": {
+    "message_type": {
+      "$ref": "Shared.json#/definitions/message_type"
+    },
+    "record_type": {
+      "type": "string",
+      "description": "Refers to the type of record whose state is being recorded(clinic, practitioner, patient or entry)."
+    },
+    "record_emr_id": {
+      "type": "string",
+      "description": "The primary key of the record whose state is being recorded."
+    },
+    "state": {
+      "type": "string",
+      "description": "Indicates the state of the record within the EMR at a point in time(effective_date). (e.g.Deleted, Deleted in Error, Refuted, Active, etc).If there is no value present, then this record is assumed to be active."
+    },
+    "effective_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "The date and time that the record took on the “state” within the EMR."
+    },
+    "emr_id": {
+      "type": "string",
+      "description": "The primary key of the record that records the state change. This must be populated if it differs from the record_id field(e.g.a separate archive table / row)."
+    },
+    "emr_reference": {
+      "type": "string",
+      "description": "No set purpose. For use by the EMR adapter."
+    },
+    "operation": {
+      "$ref": "Shared.json#/definitions/operation"
+    }
+  }
+}
