@@ -37,7 +37,6 @@ describe('JSON validation with validator.js using ajv module', () => {
         hdc_reference: 'PRAC1',
         name: 'Clinic One',
       });
-      // if (!valid) console.log(validateClinic.errors);
       assert.isTrue(valid.success);
     });
     it('should respond with error for invalid JSON', () => {
@@ -53,8 +52,9 @@ describe('JSON validation with validator.js using ajv module', () => {
 
       assert.isFalse(valid.success);
       assert.isArray(valid.errors);
-      // assert.equal(valid.errors[0].dataPath, '.message_type');
-      // assert.equal(valid.errors[0].message, 'should be equal to one of the allowed values');
+      assert.equal(valid.errors[0].keyword, 'required');
+      assert.equal(valid.errors[0].params.missingProperty, 'hdc_reference');
+      assert.equal(valid.errors[0].message, 'should have required property \'hdc_reference\'');
     });
   });
 
@@ -89,8 +89,9 @@ describe('JSON validation with validator.js using ajv module', () => {
 
       assert.isFalse(valid.success);
       assert.isArray(valid.errors);
-      // assert.equal(valid.errors[0].dataPath, '.message_type');
-      // assert.equal(valid.errors[0].message, 'should be equal to one of the allowed values');
+      assert.equal(valid.errors[0].keyword, 'required');
+      assert.equal(valid.errors[0].params.missingProperty, 'identifier');
+      assert.equal(valid.errors[0].message, 'should have required property \'identifier\'');
     });
   });
 
@@ -117,8 +118,9 @@ describe('JSON validation with validator.js using ajv module', () => {
 
       assert.isFalse(valid.success);
       assert.isArray(valid.errors);
-      // assert.equal(valid.errors[0].dataPath, '.message_type');
-      // assert.equal(valid.errors[0].message, 'should be equal to one of the allowed values');
+      assert.equal(valid.errors[0].keyword, 'required');
+      assert.equal(valid.errors[0].params.missingProperty, 'clinic_emr_id');
+      assert.equal(valid.errors[0].message, 'should have required property \'clinic_emr_id\'');
     });
   });
 
@@ -149,13 +151,17 @@ describe('JSON validation with validator.js using ajv module', () => {
 
       assert.isFalse(valid.success);
       assert.isArray(valid.errors);
-      // assert.equal(valid.errors[0].dataPath, '.message_type');
-      // assert.equal(valid.errors[0].message, 'should be equal to one of the allowed values');
+      assert.equal(valid.errors[0].keyword, 'required');
+      assert.equal(valid.errors[0].params.missingProperty, 'patient_emr_id');
+      assert.equal(valid.errors[0].message, 'should have required property \'patient_emr_id\'');
     });
   });
 
   describe('Entry Attribute JSON validation scenarios', () => {
     it('should respond with success for valid JSON', () => {
+      /* I removed "entry_type_id" from required.
+      It's in the Universal schema doc,
+      but not the Specification or sample request. */
       const valid = validator.validate({
         message_type: 'Entry Attribute',
         entry_emr_id: '4B3188F376E4DD46AC373F4455B6F1FB\\Address_Home',
@@ -183,8 +189,9 @@ describe('JSON validation with validator.js using ajv module', () => {
 
       assert.isFalse(valid.success);
       assert.isArray(valid.errors);
-      // assert.equal(valid.errors[0].dataPath, '.message_type');
-      // assert.equal(valid.errors[0].message, 'should be equal to one of the allowed values');
+      assert.equal(valid.errors[0].keyword, 'required');
+      assert.equal(valid.errors[0].params.missingProperty, 'entry_emr_id');
+      assert.equal(valid.errors[0].message, 'should have required property \'entry_emr_id\'');
     });
   });
 
@@ -195,12 +202,17 @@ describe('JSON validation with validator.js using ajv module', () => {
         emr_id: '439946DE1FEE4529B9A2D90533F811C6',
         emr_reference: '',
         operation: 'active',
-        effective_date: '2018-05-28T15:59:34.5980000',
+        effective_date: '2018-05-28T15:59:34.5980000Z',
+        /*
+          I added a Z because RFC3339 requires that you include
+          either a time zone offset or a Z to indicate UTC
+          it was already correct on emr_effective_date
+        */
         record_emr_id: '439946DE1FEE4529B9A2D90533F811C6',
         record_type: 'clinic',
         state: 'active',
       });
-      // if (!valid) console.log(validateClinic.errors);
+      /* if (!valid.success) console.log(valid.errors); */
       assert.isTrue(valid.success);
     });
     it('should respond with error for invalid JSON', () => {
@@ -217,8 +229,9 @@ describe('JSON validation with validator.js using ajv module', () => {
 
       assert.isFalse(valid.success);
       assert.isArray(valid.errors);
-      // assert.equal(valid.errors[0].dataPath, '.message_type');
-      // assert.equal(valid.errors[0].message, 'should be equal to one of the allowed values');
+      assert.equal(valid.errors[0].keyword, 'required');
+      assert.equal(valid.errors[0].params.missingProperty, 'state');
+      assert.equal(valid.errors[0].message, 'should have required property \'state\'');
     });
   });
 });

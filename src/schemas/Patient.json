@@ -16,8 +16,7 @@
       "description": "Refers to the clinic that was the source for the patient record."
     },
     "emr_id": {
-      "type": "string",
-      "description": "The unique identifier of the source record within the EMR."
+      "$ref": "Shared.json#/definitions/emr_id"
     },
     "emr_reference": {
       "type": "string",

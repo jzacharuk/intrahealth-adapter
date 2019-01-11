@@ -12,7 +12,7 @@
     "emr_id": "439946DE1FEE4529B9A2D90533F811C6",
     "emr_reference": "",
     "operation": "active",
-    "effective_date": "2018-05-28T15:59:34.5980000",
+    "effective_date": "2018-05-28T15:59:34.5980000Z",
     "record_emr_id": "439946DE1FEE4529B9A2D90533F811C6",
     "record_type": "clinic",
     "state": "active"
@@ -33,7 +33,7 @@
     "emr_id": "C6AE71E1CC2D4369B2E5FA2EF65C1761",
     "emr_reference": "",
     "operation": "active",
-    "effective_date": "2018-10-01T15:31:28.5430000",
+    "effective_date": "2018-10-01T15:31:28.5430000Z",
     "record_emr_id": "C6AE71E1CC2D4369B2E5FA2EF65C1761",
     "record_type": "practitioner",
     "state": "active"
@@ -50,7 +50,7 @@
     "emr_id": "4B3188F376E4DD46AC373F4455B6F1FB",
     "emr_reference": "",
     "operation": "active",
-    "effective_date": "2018-10-01T15:31:29.6680000",
+    "effective_date": "2018-10-01T15:31:29.6680000Z",
     "record_emr_id": "4B3188F376E4DD46AC373F4455B6F1FB",
     "record_type": "patient",
     "state": "Active"

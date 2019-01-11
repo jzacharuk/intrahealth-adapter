@@ -2,7 +2,7 @@
   "$id": "APIRequest.json",
   "type": "array",
   "items": {
-    "oneOf": [{
+    "anyOf": [{
         "$ref": "Clinic.json#"
       },
       {

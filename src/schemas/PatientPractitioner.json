@@ -21,8 +21,7 @@
       "description": "Refers to the primary practitioner."
     },
     "emr_id": {
-      "type": "string",
-      "description": "The unique identifier of the source record within the EMR."
+      "$ref": "Shared.json#/definitions/emr_id"
     },
     "emr_reference": {
       "type": "string",

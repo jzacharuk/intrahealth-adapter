@@ -32,8 +32,7 @@
       "description": "The date and time that the record took on the “state” within the EMR."
     },
     "emr_id": {
-      "type": "string",
-      "description": "The primary key of the record that records the state change. This must be populated if it differs from the record_id field(e.g.a separate archive table / row)."
+      "$ref": "Shared.json#/definitions/emr_id"
     },
     "emr_reference": {
       "type": "string",

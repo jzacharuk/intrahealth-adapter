@@ -6,7 +6,6 @@
     "entry_emr_id",
     "attribute_id",
     "emr_id",
-    "entry_type_id",
     "operation"
   ],
   "properties": {
@@ -18,7 +17,7 @@
       "description": "Refers to the entry that this attribute pertains to."
     },
     "attribute_id": {
-      "type": "string",
+      "type": "number",
       "description": "The attribute that is being described."
     },
     "code_system": {
@@ -47,8 +46,7 @@
       "description": "A numeric value for the attribute."
     },
     "emr_id": {
-      "type": "string",
-      "description": "The unique identifier of the source record within the EMR."
+      "$ref": "Shared.json#/definitions/emr_id"
     },
     "emr_reference": {
       "type": "string",

@@ -15,6 +15,11 @@
     "id": {
       "type": "string"
     },
+    "emr_id": {
+      "type": "string",
+      "readOnly": true,
+      "description": "The unique identifier of the source record within the EMR."
+    },
     "operation": {
       "type": "string",
       "enum": ["active"]

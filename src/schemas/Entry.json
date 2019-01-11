@@ -22,15 +22,14 @@
       "description": "The table that is the primary source of the record within the EMR."
     },
     "emr_id": {
-      "type": "string",
-      "description": "The unique identifier of the source record within the EMR."
+      "$ref": "Shared.json#/definitions/emr_id"
     },
     "emr_reference": {
       "type": "string",
       "description": "No set purpose. For use by the EMR adapter."
     },
     "entry_type_id": {
-      "type": "string",
+      "type": "integer",
       "description": "This will refer to the type of entry (e.g. 14)."
     },
     "operation": {
