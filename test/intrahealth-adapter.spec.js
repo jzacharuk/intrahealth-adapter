@@ -1,10 +1,19 @@
-/* eslint-env and, mocha */
+/* eslint-env and, mocha, chai */
+/* eslint-disable no-unused-expressions */
+/*  i had to add this to not error expect(res).to.be.json; statements  */
 /* jshint esversion: 6 */
+/* jshint -W030 */
+/* jshint expr:true */
 const chai = require('chai');
+const chaiHttp = require('chai-http');
 
 // const { assert } = chai.assert;
 const assert = chai.assert;
 const expect = chai.expect;
+const apiEndpoint = 'http://localhost:3000';
+
+chai.use(chaiHttp);
+
 /*
 invalid record
 {
@@ -34,65 +43,83 @@ describe('intrahealth-adapter', () => {
   describe('POST /message/', () => {
     before('Wipe database to prepare for testing.', () => {
       // make sure that the API is up.
-      // TODO Wipe database.
+      // TODO: Wipe database.
     });
     describe('negative tests, error handling scenarios', () => {
-      it('should respond with 415 and the error message on invalid JSON ', () => {
-        const actual = 'postInvalidJSON()'; // TODO
-        const expected = {
-          error: 'Unexpected token h in JSON at position 0',
-        };
-
-        it('fails, as expected', (done) => { // <= Pass in done callback
-          chai.request('http://localhost:8080')
-            .get('/')
-            .end((err, res) => {
-              expect(res).to.have.status(123);
-              done(); // <= Call done to signal callback end
-            });
-        });
-
-        it('succeeds silently!', () => { // <= No done callback
-          chai.request('http://localhost:8080')
-            .get('/')
-            .end((err, res) => {
-              expect(res).to.have.status(123); // <= Test completes before this runs
-            });
-        });
+      it('does not allow HTTP GET, returns 404', (done) => { // <= Pass in done callback
+        chai.request(apiEndpoint)
+          .get('/message/')
+          .end((err, res) => {
+            expect(res).to.have.status(404);
+            expect(res).to.be.json;
+            assert.equal(res.body.error, 'Resource not found');
+            done();
+          });
       });
-      it('should respond with 400 Unexpected message format ', () => {
-        const actual = 'postInvalidJSON()'; // TODO
-        const expected = {
-          error: 'Unexpected message format',
-          errors: [{
-            keyword: 'type',
-            dataPath: '.firstName',
-            schemaPath: '#/properties/firstName/type',
-            params: {
-              type: 'string',
-            },
-            message: 'should be string',
-          }],
-        };
-
-        assert.deepEqual(actual, expected);
+      it('does not allow any other path, returns 404', (done) => { // <= Pass in done callback
+        chai.request(apiEndpoint)
+          .post('/doesnotexist/')
+          .send({
+            dummy: 'input',
+          })
+          .end((err, res) => {
+            expect(res).to.have.status(404);
+            expect(res).to.be.json;
+            assert.equal(res.body.error, 'Resource not found');
+            done();
+          });
       });
-      it('should respond with 422 The message received was valid JSON and matches the required JSON Schema; however, the message could not be processed for another reason.', () => {
-        const actual = 'postInvalidJSON()'; // TODO
-        const expected = {
-          error: 'Unexpected message format',
-          errors: [{
-            keyword: 'type',
-            dataPath: '.firstName',
-            schemaPath: '#/properties/firstName/type',
-            params: {
-              type: 'string',
-            },
-            message: 'should be string',
-          }],
-        };
-
-        assert.deepEqual(actual, expected);
+      it('should respond with 415 and the error message on invalid JSON ', (done) => {
+        chai.request(apiEndpoint)
+          .post('/message/')
+          .set('Content-Type', 'application/json')
+          .send('<xml></xml>')
+          .end((err, res) => {
+            expect(res).to.have.status(415);
+            expect(res).to.be.json;
+            assert.equal(res.body.error, 'SyntaxError: Unexpected token < in JSON at position 0');
+            done();
+          });
+      });
+      it('should respond with 400 Unexpected message format ', (done) => {
+        chai.request(apiEndpoint)
+          .post('/message/')
+          .send({
+            message_type: 'Clinic',
+            emr_id: '439946DE1FEE4529B9A2D90533F811C6',
+            emr_reference: '',
+            operation: 'active',
+            emr: 'EMR Name',
+            no_hdc_reference: 'PRAC1',
+            name: 'Clinic One',
+          })
+          .end((err, res) => {
+            expect(res).to.have.status(400);
+            assert.equal(res.body.errors[0].keyword, 'required');
+            assert.equal(res.body.errors[0].params.missingProperty, 'hdc_reference');
+            assert.equal(res.body.errors[0].message, 'should have required property \'hdc_reference\'');
+            done();
+          });
+      });
+      it('should respond with 422 The message received was valid JSON and matches the required JSON Schema; however, the message could not be processed for another reason.', (done) => {
+        chai.request(apiEndpoint)
+          .post('/message/')
+          .send({
+            message_type: 'Clinic',
+            emr_id: '439946DE1FEE4529B9A2D90533F811C6',
+            emr_reference: '',
+            operation: 'active',
+            emr: 'EMR Name',
+            no_hdc_reference: 'PRAC1',
+            name: 'Clinic One',
+          })
+          .end((err, res) => {
+            expect(res).to.have.status(400);
+            assert.equal(res.body.errors[0].keyword, 'required');
+            assert.equal(res.body.errors[0].params.missingProperty, 'hdc_reference');
+            assert.equal(res.body.errors[0].message, 'should have required property \'hdc_reference\'');
+            done();
+          });
       });
     });
     describe('Clinic ', () => {

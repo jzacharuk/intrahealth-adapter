@@ -7,7 +7,7 @@ const path = require('path');
 const schemaDir = path.join(__dirname, 'schemas');
 let ajv = null;
 
-/* callback */
+/* TODO: support callbacks? */
 const loadSchemas = () => {
   fs.readdir(schemaDir, (err, filenames) => {
     if (err) {
@@ -18,7 +18,7 @@ const loadSchemas = () => {
         try {
           const schemaFile = fs.readFileSync(path.join(schemaDir, filename), 'utf-8');
           schemaArray.push(JSON.parse(schemaFile));
-          // TODO also create a list of valid schemas
+          // TODO: also create a list of valid schemas
         } catch (error) {
           /* callback(err); */
         }
@@ -58,7 +58,7 @@ const validate = (json2bvalidated) => {
     msgType = `${json2validate.message_type}.json`;
   }
 
-  // TODO verify message_type up front to be sure schema is found
+  // TODO: verify message_type up front to be sure schema is found
   validateFunction = ajv.getSchema(msgType);
   const valid = validateFunction(json2validate);
 
