@@ -4,6 +4,7 @@ const chai = require('chai');
 
 // const { assert } = chai.assert;
 const assert = chai.assert;
+const expect = chai.expect;
 /*
 invalid record
 {
@@ -36,13 +37,28 @@ describe('intrahealth-adapter', () => {
       // TODO Wipe database.
     });
     describe('negative tests, error handling scenarios', () => {
-      it('should respond with 415 and the error message on JSON ', () => {
+      it('should respond with 415 and the error message on invalid JSON ', () => {
         const actual = 'postInvalidJSON()'; // TODO
         const expected = {
           error: 'Unexpected token h in JSON at position 0',
         };
 
-        assert.deepEqual(actual, expected);
+        it('fails, as expected', (done) => { // <= Pass in done callback
+          chai.request('http://localhost:8080')
+            .get('/')
+            .end((err, res) => {
+              expect(res).to.have.status(123);
+              done(); // <= Call done to signal callback end
+            });
+        });
+
+        it('succeeds silently!', () => { // <= No done callback
+          chai.request('http://localhost:8080')
+            .get('/')
+            .end((err, res) => {
+              expect(res).to.have.status(123); // <= Test completes before this runs
+            });
+        });
       });
       it('should respond with 400 Unexpected message format ', () => {
         const actual = 'postInvalidJSON()'; // TODO
