@@ -39,7 +39,7 @@ report of what happened. INSERTED / UPDATED / NO CHANGE
 
 */
 
-describe('intrahealth-adapter', () => {
+describe.skip('intrahealth-adapter', () => {
   describe('POST /message/', () => {
     before('Wipe database to prepare for testing.', () => {
       // make sure that the API is up.
@@ -52,7 +52,7 @@ describe('intrahealth-adapter', () => {
           .end((err, res) => {
             expect(res).to.have.status(404);
             expect(res).to.be.json;
-            assert.equal(res.body.error, 'Resource not found');
+            expect(res.body.error).to.equal('Resource not found');
             done();
           });
       });
@@ -65,7 +65,7 @@ describe('intrahealth-adapter', () => {
           .end((err, res) => {
             expect(res).to.have.status(404);
             expect(res).to.be.json;
-            assert.equal(res.body.error, 'Resource not found');
+            expect(res.body.error).to.equal('Resource not found');
             done();
           });
       });
@@ -73,11 +73,11 @@ describe('intrahealth-adapter', () => {
         chai.request(apiEndpoint)
           .post('/message/')
           .set('Content-Type', 'application/json')
-          .send('<xml></xml>')
+          .send('<xml>not JSON</xml>')
           .end((err, res) => {
             expect(res).to.have.status(415);
             expect(res).to.be.json;
-            assert.equal(res.body.error, 'SyntaxError: Unexpected token < in JSON at position 0');
+            expect(res.body.error).to.equal('SyntaxError: Unexpected token < in JSON at position 0');
             done();
           });
       });
@@ -95,9 +95,10 @@ describe('intrahealth-adapter', () => {
           })
           .end((err, res) => {
             expect(res).to.have.status(400);
-            assert.equal(res.body.errors[0].keyword, 'required');
-            assert.equal(res.body.errors[0].params.missingProperty, 'hdc_reference');
-            assert.equal(res.body.errors[0].message, 'should have required property \'hdc_reference\'');
+            expect(res).to.be.json;
+            expect(res.body.errors[0].keyword).to.equal('required');
+            expect(res.body.errors[0].params.missingProperty).to.equal('hdc_reference');
+            expect(res.body.errors[0].message).to.equal('should have required property \'hdc_reference\'');
             done();
           });
       });
@@ -115,16 +116,34 @@ describe('intrahealth-adapter', () => {
           })
           .end((err, res) => {
             expect(res).to.have.status(400);
-            assert.equal(res.body.errors[0].keyword, 'required');
-            assert.equal(res.body.errors[0].params.missingProperty, 'hdc_reference');
-            assert.equal(res.body.errors[0].message, 'should have required property \'hdc_reference\'');
+            expect(res).to.be.json;
+            expect(res.body.errors[0].keyword).to.equal('required');
+            expect(res.body.errors[0].params.missingProperty).to.equal('hdc_reference');
+            expect(res.body.errors[0].message).to.equal('should have required property \'hdc_reference\'');
             done();
           });
       });
     });
     describe('Clinic ', () => {
-      it('should successfully insert a record', () => {
-        assert.deepEqual('actual', 'expected');
+      it('should successfully insert a Clinic record', (done) => {
+        chai.request(apiEndpoint)
+          .post('/message/')
+          .send([{
+            message_type: 'Clinic',
+            emr_id: '439946DE1FEE4529B9A2D90533F811C6',
+            emr_reference: '',
+            operation: 'active',
+            emr: 'EMR Name',
+            hdc_reference: 'PRAC1',
+            name: 'Clinic One',
+          }])
+          .end((err, res) => {
+            console.log(JSON.stringify(res.body));
+            expect(res).to.have.status(200);
+            expect(res).to.be.json;
+            // expect(res.body.status).to.equal('success');
+            done();
+          });
       });
       it('should successfully update a record', () => {
         assert.deepEqual('actual', 'expected');

@@ -72,7 +72,6 @@ const validate = (json2bvalidated) => {
 };
 
 module.exports = {
-  ajv,
   loadSchemas,
   validate,
 };

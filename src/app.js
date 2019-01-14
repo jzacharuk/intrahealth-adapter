@@ -2,16 +2,22 @@
 /* jshint esversion: 6 */
 const express = require('express');
 const bodyParser = require('body-parser');
+const pg = require('pg');
+const fs = require('fs');
 const validator = require('./validator');
+
+
+const dbDefaults = JSON.parse(fs.readFileSync('./db/defaults.json'));
 
 const app = express();
 
-validator.loadSchemas();
+const pool = new pg.Pool(dbDefaults);
 
-// create application/json parser
 const jsonParser = bodyParser.json({
   strict: true,
 });
+
+validator.loadSchemas();
 
 app.post('/message/', jsonParser, (req, res) => {
   /*
@@ -54,28 +60,39 @@ app.post('/message/', jsonParser, (req, res) => {
       a.Parse the clinic id(emr_id) out of the first message(message_type = “Clinic”).
       b.Create a database connection based on the clinic id or use a cached one
       if it exists.
+      */
+      let clinic = null;
+      if (res.body[0].message_type === 'clinic') {
+        clinic = res.body[0];
+      } else {
+        // TODO: lookup clinic from the first clinc id found in request
+        clinic = null;
+      }
+
+      if (clinic) {
+        pool.connect((connErr, client, release) => {
+          if (connErr) {
+            release();
+            res.status(500).json({
+              error: 'Server error connecting to database.',
+              errors: [],
+            });
+          } else {
+            // compare, and maybe update
+          }
+        });
+      }
+      /*
       c.Synchronize the object with the database depending on the message type.
       d.If anything fails, respond with 422.
       4. If everything succeeded, respond with 200.
       */
-      res.json({
-        status: 'success',
-        received: req.body,
-      });
     }
   }
 });
 
 /* general error handling */
 app.get('*', (req, res) => {
-  res.status(404).json({
-    error: 'Resource not found',
-    errors: [],
-  });
-});
-
-/* general error handling */
-app.post('*', (req, res) => {
   res.status(404).json({
     error: 'Resource not found',
     errors: [],
@@ -90,9 +107,9 @@ app.use((err, req, res, next) => {
       errors: [],
     });
   } else {
-    // TODO: use logger
-    console.error(JSON.stringify(err));
-    console.error(err.stack);
+    // FIXME: use logger
+    // console.error(JSON.stringify(err));
+    // console.error(err.stack);
     res.status(500).json({
       error: 'Unknown server side error encountered.',
       errors: [],
