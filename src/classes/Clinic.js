@@ -16,6 +16,7 @@ module.exports = class Clinic extends Message {
       $id: this.schemaId,
       type: 'object',
       required: [
+        'emr_id',
         'message_type',
         'name',
         'hdc_reference',
@@ -60,10 +61,10 @@ module.exports = class Clinic extends Message {
     });
 
     this.sql = {
-      selectById: 'SELECT name, hdc_reference, emr_id, emr_reference, emr FROM universal.clinic WHERE id = $1 ;',
+      selectById: 'SELECT id, name, hdc_reference, emr_id, emr_reference, emr FROM universal.clinic WHERE emr_id = $1 ;',
       insert: 'INSERT INTO universal.clinic(name, hdc_reference, emr_id, emr_reference, emr) VALUES( $1 , $2 , $3 , $4 , $5) RETURNING id ;',
-      update: 'UPDATE universal.clinic SET name = $2 , hdc_reference = $3 , emr_id = $4 , emr_reference = $5 , emr = $6 WHERE id = $1 ;',
-      delete: 'DELETE FROM universal.clinic WHERE id = $1 ;',
+      update: 'UPDATE universal.clinic SET name = $3 , hdc_reference = $4 , emr_reference = $5 , emr = $6 WHERE id = $1 AND emr_id = $2 ;',
+      delete: 'DELETE FROM universal.clinic WHERE id = $1 AND emr_id = $2 ;',
     };
   }
 
@@ -82,43 +83,43 @@ module.exports = class Clinic extends Message {
     return results;
   }
 
-  selectById(dbClient, id) {
-    const query = {
-      text: this.selectById,
-      values: [id],
-    };
-
-    // callback
-    dbClient.query(query, (err, res) => {
-      let returnObj;
-      if (err) {
-        returnObj = null;
-        // console.log(err.stack)
-      } else {
-        returnObj = res.rows[0];
-      }
-      return returnObj;
+  selectByEmrId(dbClient, emrId, callback) {
+    dbClient.query({
+      text: this.sql.selectById,
+      values: [emrId],
+    }, (err, res) => {
+      callback(err, res.rows.length ? res.rows[0] : null);
     });
   }
 
   insert(dbClient, ins, callback) {
-    const query = {
+    dbClient.query({
       text: this.sql.insert,
       values: [ins.name, ins.hdc_reference, ins.emr_id, ins.emr_reference, ins.emr],
-    };
-
-    // callback
-    dbClient.query(query, (err, res) => {
-      /*
-      let returnObj;
-      if (err) {
-        returnObj = null;
-        // console.log(err.stack)
-      } else {
-        returnObj = res.rows[0];
-      }
-      */
+    }, (err, res) => {
       callback(err, res.rows[0].id);
     });
+  }
+
+  update(dbClient, upd, callback) {
+    dbClient.query({
+      text: this.sql.update,
+      values: [upd.id, upd.emr_id, upd.name, upd.hdc_reference, upd.emr_reference, upd.emr],
+    }, (err, res) => {
+      callback(err, res.rowCount);
+    });
+  }
+
+  delete(dbClient, del, callback) {
+    dbClient.query({
+      text: this.sql.delete,
+      values: [del.id, del.emr_id],
+    }, (err, res) => {
+      callback(err, res.rowCount);
+    });
+  }
+
+  static compare(comp, curr) {
+    return super.compare(comp, curr, ['emr', 'emr_reference', 'hdc_reference']);
   }
 };

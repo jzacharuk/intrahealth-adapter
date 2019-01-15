@@ -5,8 +5,10 @@ const bodyParser = require('body-parser');
 const pg = require('pg');
 const fs = require('fs');
 const path = require('path');
+const classes = require('./classes');
 const validator = require('./validator');
 
+const clinic = new classes.Clinic();
 
 const dbDefaults = JSON.parse(fs.readFileSync(path.join(__dirname, 'db/defaults.json')));
 
@@ -62,15 +64,15 @@ app.post('/message/', jsonParser, (req, res) => {
       b.Create a database connection based on the clinic id or use a cached one
       if it exists.
       */
-      let clinic = null;
+      let clinicMsg = null;
       if (res.body[0].message_type === 'clinic') {
-        clinic = res.body[0];
+        clinicMsg = res.body[0];
       } else {
         // TODO: lookup clinic from the first clinc id found in request
-        clinic = null;
+        clinicMsg = null;
       }
 
-      if (clinic) {
+      if (clinicMsg) {
         pool.connect((connErr, client, release) => {
           if (connErr) {
             release();
@@ -80,6 +82,18 @@ app.post('/message/', jsonParser, (req, res) => {
             });
           } else {
             // compare, and maybe update
+            clinic.selectByEmrId(client, clinicMsg.emr_id, (err, result) => {
+              if (err) {
+                release();
+                res.status(500).json({
+                  error: 'Server error clinic.selectByEmrId.',
+                  errors: [],
+                });
+              } else if (result) {
+                // let clinicDbId = result.id;
+                clinic.compare(clinicMsg, result);
+              }
+            });
           }
         });
       }

@@ -32,4 +32,18 @@ module.exports = class Message {
       },
     };
   }
+
+  static compare(comp, curr, fields) {
+    let result = null;
+    if (comp.emr_id === curr.emr_id) {
+      fields.forEach((field) => {
+        if (comp[field] !== curr[field]) {
+          result = 'different';
+        }
+      });
+    } else {
+      result = 'invalid';
+    }
+    return result || 'match';
+  }
 };
