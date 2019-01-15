@@ -4,10 +4,11 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const pg = require('pg');
 const fs = require('fs');
+const path = require('path');
 const validator = require('./validator');
 
 
-const dbDefaults = JSON.parse(fs.readFileSync('./db/defaults.json'));
+const dbDefaults = JSON.parse(fs.readFileSync(path.join(__dirname, 'db/defaults.json')));
 
 const app = express();
 
@@ -93,6 +94,14 @@ app.post('/message/', jsonParser, (req, res) => {
 
 /* general error handling */
 app.get('*', (req, res) => {
+  res.status(404).json({
+    error: 'Resource not found',
+    errors: [],
+  });
+});
+
+/* general error handling */
+app.post('*', (req, res) => {
   res.status(404).json({
     error: 'Resource not found',
     errors: [],

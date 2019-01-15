@@ -39,17 +39,18 @@ report of what happened. INSERTED / UPDATED / NO CHANGE
 
 */
 
-describe.skip('intrahealth-adapter', () => {
+describe('intrahealth-adapter', () => {
   describe('POST /message/', () => {
     before('Wipe database to prepare for testing.', () => {
       // make sure that the API is up.
       // TODO: Wipe database.
     });
-    describe('negative tests, error handling scenarios', () => {
+    describe.only('negative tests, error handling scenarios', () => {
       it('does not allow HTTP GET, returns 404', (done) => { // <= Pass in done callback
         chai.request(apiEndpoint)
           .get('/message/')
           .end((err, res) => {
+            if (err) done(err);
             expect(res).to.have.status(404);
             expect(res).to.be.json;
             expect(res.body.error).to.equal('Resource not found');
@@ -63,6 +64,7 @@ describe.skip('intrahealth-adapter', () => {
             dummy: 'input',
           })
           .end((err, res) => {
+            if (err) done(err);
             expect(res).to.have.status(404);
             expect(res).to.be.json;
             expect(res.body.error).to.equal('Resource not found');
@@ -75,6 +77,7 @@ describe.skip('intrahealth-adapter', () => {
           .set('Content-Type', 'application/json')
           .send('<xml>not JSON</xml>')
           .end((err, res) => {
+            if (err) done(err);
             expect(res).to.have.status(415);
             expect(res).to.be.json;
             expect(res.body.error).to.equal('SyntaxError: Unexpected token < in JSON at position 0');
@@ -94,6 +97,7 @@ describe.skip('intrahealth-adapter', () => {
             name: 'Clinic One',
           })
           .end((err, res) => {
+            if (err) done(err);
             expect(res).to.have.status(400);
             expect(res).to.be.json;
             expect(res.body.errors[0].keyword).to.equal('required');
@@ -103,6 +107,8 @@ describe.skip('intrahealth-adapter', () => {
           });
       });
       it('should respond with 422 The message received was valid JSON and matches the required JSON Schema; however, the message could not be processed for another reason.', (done) => {
+        /* this could be when the timestamp is old,
+        or if the id referenced in another message part didn't match */
         chai.request(apiEndpoint)
           .post('/message/')
           .send({
@@ -115,6 +121,7 @@ describe.skip('intrahealth-adapter', () => {
             name: 'Clinic One',
           })
           .end((err, res) => {
+            if (err) done(err);
             expect(res).to.have.status(400);
             expect(res).to.be.json;
             expect(res.body.errors[0].keyword).to.equal('required');
@@ -138,7 +145,8 @@ describe.skip('intrahealth-adapter', () => {
             name: 'Clinic One',
           }])
           .end((err, res) => {
-            console.log(JSON.stringify(res.body));
+            if (err) done(err);
+            // console.log(JSON.stringify(res.body));
             expect(res).to.have.status(200);
             expect(res).to.be.json;
             // expect(res.body.status).to.equal('success');
