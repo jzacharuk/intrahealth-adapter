@@ -9,7 +9,10 @@
   ],
   "properties": {
     "message_type": {
-      "$ref": "Shared.json#/definitions/message_type"
+      "type": "string",
+      "enum": [
+        "Patient"
+      ]
     },
     "clinic_emr_id": {
       "type": "string",

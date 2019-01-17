@@ -9,7 +9,8 @@
         "Practitioner",
         "Patient",
         "Entry",
-        "Entry Attribute"
+        "Entry Attribute",
+        "Patient Practitioner"
       ]
     },
     "id": {

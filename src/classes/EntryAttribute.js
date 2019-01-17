@@ -1,103 +1,64 @@
-/* eslint-env and, mocha */
+/* eslint-env */
 /* jshint esversion: 6 */
+const path = require('path');
+const fs = require('fs');
+const Shared = require('./Shared');
 
-// import Message from './Message';
+module.exports = class EntryAttribute {
+  static getMessageFields() {
+    // TODO: set to right fields for Entry
+    return ['emr', 'emr_reference', 'hdc_reference'];
+  }
 
-const Ajv = require('ajv');
-const Message = require('./Message');
+  static getMessageType() {
+    return 'EntryAttribute';
+  }
 
-module.exports = class EntryAttribute extends Message {
-  constructor() {
-    super();
-    this.message_type = 'Entry Attribute';
-    this.schemaId = 'EntryAttribute.json';
+  static getSchemaId() {
+    return 'EntryAttribute.json';
+  }
 
-    this.schema = {
-      $id: this.schemaId,
-      type: 'object',
-      required: [
-        'message_type',
-        'entry_emr_id',
-        'attribute_id',
-        'emr_id',
-        'operation',
-      ],
-      properties: {
-        message_type: {
-          type: 'string',
-          enum: [this.message_type],
-        },
-        entry_emr_id: {
-          type: 'string',
-          description: 'Refers to the entry that this attribute pertains to.',
-        },
-        attribute_id: {
-          type: 'number',
-          description: 'The attribute that is being described.',
-        },
-        code_system: {
-          type: 'string',
-          description: 'The name of the system that defines the code value.',
-        },
-        code_value: {
-          type: 'string',
-          description: 'A code value for the attribute. Code system must be populated.',
-        },
-        text_value: {
-          type: 'string',
-          description: 'A text value for the attribute.',
-        },
-        date_value: {
-          type: 'string',
-          format: 'date',
-          description: 'A date value for the attribute.',
-        },
-        boolean_value: {
-          type: 'boolean',
-          description: 'A boolean value for the attribute.',
-        },
-        numeric_value: {
-          type: 'number',
-          description: 'A numeric value for the attribute.',
-        },
-        emr_id: {
-          $ref: 'Shared.json#/definitions/emr_id',
-        },
-        emr_reference: {
-          type: 'string',
-          description: 'No set purpose. For use by the EMR adapter.',
-        },
-        emr_effective_date: {
-          type: 'string',
-          format: 'date-time',
-          description: 'The date and time that the attribute was effective within the EMR for the entry.',
-        },
-        operation: {
-          $ref: 'Shared.json#/definitions/operation',
-        },
-      },
-    };
+  static getSchema() {
+    return JSON.parse(fs.readFileSync(path.join(__dirname, '../schemas/EntryAttribute.json')));
+  }
 
-    this.ajv = new Ajv({
-      allErrors: true,
-      extendRefs: 'fail',
-      verbose: true,
-      schemas: [this.sharedSchema, this.schema],
+  static selectByEmrId(dbClient, emrId, callback) {
+    dbClient.query({
+      text: 'SELECT id, name, hdc_reference, emr_id, emr_reference, emr FROM universal.clinic WHERE emr_id = $1 ;',
+      values: [emrId],
+    }, (err, res) => {
+      callback(err, res.rows.length ? res.rows[0] : null);
     });
   }
 
-  validate(json2validate) {
-    // return super.validate(this.ajv, this.schemaId, json2validate);
-    const results = {};
-    const validateFunction = this.ajv.getSchema(this.schemaId);
-    const valid = validateFunction(json2validate);
+  static insert(dbClient, ins, callback) {
+    dbClient.query({
+      text: 'INSERT INTO universal.clinic(name, hdc_reference, emr_id, emr_reference, emr) VALUES( $1 , $2 , $3 , $4 , $5) RETURNING id ;',
+      values: [ins.name, ins.hdc_reference, ins.emr_id, ins.emr_reference, ins.emr],
+    }, (err, res) => {
+      callback(err, res.rows[0].id);
+    });
+  }
 
-    if (valid) {
-      results.success = true;
-    } else {
-      results.success = false;
-      results.errors = validateFunction.errors;
-    }
-    return results;
+  static update(dbClient, upd, callback) {
+    dbClient.query({
+      text: 'UPDATE universal.clinic SET name = $3 , hdc_reference = $4 , emr_reference = $5 , emr = $6 WHERE id = $1 AND emr_id = $2 ;',
+      values: [upd.id, upd.emr_id, upd.name, upd.hdc_reference, upd.emr_reference, upd.emr],
+    }, (err, res) => {
+      callback(err, res.rowCount);
+    });
+  }
+
+  static delete(dbClient, del, callback) {
+    dbClient.query({
+      text: 'DELETE FROM universal.clinic WHERE id = $1 AND emr_id = $2 ;',
+      values: [del.id, del.emr_id],
+    }, (err, res) => {
+      callback(err, res.rowCount);
+    });
+  }
+
+  static compare(comp, curr) {
+    return Shared.compare(comp, curr, this.getMessageFields());
   }
 };

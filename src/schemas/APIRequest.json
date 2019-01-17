@@ -18,7 +18,7 @@
         "$ref": "Entry.json#"
       },
       {
-        "$ref": "Attribute.json#"
+        "$ref": "EntryAttribute.json#"
       },
       {
         "$ref": "State.json#"

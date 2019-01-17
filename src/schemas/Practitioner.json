@@ -11,7 +11,10 @@
   ],
   "properties": {
     "message_type": {
-      "$ref": "Shared.json#/definitions/message_type"
+      "type": "string",
+      "enum": [
+        "Practitioner"
+      ]
     },
     "name": {
       "type": "string",

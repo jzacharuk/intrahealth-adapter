@@ -12,7 +12,10 @@
   ],
   "properties": {
     "message_type": {
-      "$ref": "Shared.json#/definitions/message_type"
+      "type": "string",
+      "enum": [
+        "State"
+      ]
     },
     "record_type": {
       "type": "string",

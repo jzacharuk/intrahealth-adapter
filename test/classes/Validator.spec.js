@@ -3,32 +3,35 @@
 const chai = require('chai');
 const fs = require('fs');
 const path = require('path');
-
+const Validator = require('../../src/classes/Validator');
 // const { assert } = chai.assert;
 const assert = chai.assert;
-
-const validator = require('../src/validator');
+const apiRequest = new Validator();
+const clinic = new Validator('Clinic');
+const entry = new Validator('Entry');
+const entryAttribute = new Validator('EntryAttribute');
+const patient = new Validator('Patient');
+const practitioner = new Validator('Practitioner');
+const patientPractitioner = new Validator('PatientPractitioner');
+const state = new Validator('State');
 
 describe('JSON validation with validator.js using ajv module', () => {
-  before('load schemas in validator ', () => {
-    validator.loadSchemas();
-  });
-
   describe('API request validation scenarios', () => {
     it('should respond with success for valid JSON', () => {
-      const parsedJSON = JSON.parse(fs.readFileSync(path.join(__dirname, 'sampleMessage.json')));
-      const valid = validator.validate(parsedJSON);
+      const parsedJSON = JSON.parse(fs.readFileSync(path.join(__dirname, '../sampleMessage.json')));
+      const valid = apiRequest.validate(parsedJSON);
       // if (!valid) console.log(validateClinic.errors);
       if (!valid.success) {
         fs.writeFileSync(path.join(__dirname, 'sampleErrors.json'), JSON.stringify(valid.errors));
       }
       assert.isTrue(valid.success);
     });
+    // TODO: need some negative cases
   });
 
   describe('Clinic JSON validation scenarios', () => {
     it('should respond with success for valid JSON', () => {
-      const valid = validator.validate({
+      const valid = clinic.validate({
         message_type: 'Clinic',
         emr_id: '439946DE1FEE4529B9A2D90533F811C6',
         emr_reference: '',
@@ -40,7 +43,7 @@ describe('JSON validation with validator.js using ajv module', () => {
       assert.isTrue(valid.success);
     });
     it('should respond with error for invalid JSON', () => {
-      const valid = validator.validate({
+      const valid = clinic.validate({
         message_type: 'Clinic',
         emr_id: '439946DE1FEE4529B9A2D90533F811C6',
         emr_reference: '',
@@ -60,7 +63,7 @@ describe('JSON validation with validator.js using ajv module', () => {
 
   describe('Practitioner JSON validation scenarios', () => {
     it('should respond with success for valid JSON', () => {
-      const valid = validator.validate({
+      const valid = practitioner.validate({
         message_type: 'Practitioner',
         emr_id: 'C6AE71E1CC2D4369B2E5FA2EF65C1761',
         emr_reference: '',
@@ -75,7 +78,7 @@ describe('JSON validation with validator.js using ajv module', () => {
       assert.isTrue(valid.success);
     });
     it('should respond with error for invalid JSON', () => {
-      const valid = validator.validate({
+      const valid = practitioner.validate({
         message_type: 'Practitioner',
         emr_id: 'C6AE71E1CC2D4369B2E5FA2EF65C1761',
         emr_reference: '',
@@ -97,7 +100,7 @@ describe('JSON validation with validator.js using ajv module', () => {
 
   describe('Patient JSON validation scenarios', () => {
     it('should respond with success for valid JSON', () => {
-      const valid = validator.validate({
+      const valid = patient.validate({
         message_type: 'Patient',
         emr_id: '4B3188F376E4DD46AC373F4455B6F1FB',
         emr_reference: '',
@@ -108,7 +111,7 @@ describe('JSON validation with validator.js using ajv module', () => {
       assert.isTrue(valid.success);
     });
     it('should respond with error for invalid JSON', () => {
-      const valid = validator.validate({
+      const valid = patient.validate({
         message_type: 'Patient',
         emr_id: '4B3188F376E4DD46AC373F4455B6F1FB',
         emr_reference: '',
@@ -126,7 +129,7 @@ describe('JSON validation with validator.js using ajv module', () => {
 
   describe('Entry JSON validation scenarios', () => {
     it('should respond with success for valid JSON', () => {
-      const valid = validator.validate({
+      const valid = entry.validate({
         message_type: 'Entry',
         emr_id: '4B3188F376E4DD46AC373F4455B6F1FB\\Address_Home',
         emr_reference: '',
@@ -139,7 +142,7 @@ describe('JSON validation with validator.js using ajv module', () => {
       assert.isTrue(valid.success);
     });
     it('should respond with error for invalid JSON', () => {
-      const valid = validator.validate({
+      const valid = entry.validate({
         message_type: 'Entry',
         emr_id: '4B3188F376E4DD46AC373F4455B6F1FB\\Address_Home',
         emr_reference: '',
@@ -162,7 +165,7 @@ describe('JSON validation with validator.js using ajv module', () => {
       /* I removed "entry_type_id" from required.
       It's in the Universal schema doc,
       but not the Specification or sample request. */
-      const valid = validator.validate({
+      const valid = entryAttribute.validate({
         message_type: 'Entry Attribute',
         entry_emr_id: '4B3188F376E4DD46AC373F4455B6F1FB\\Address_Home',
         emr_id: '4B3188F376E4DD46AC373F4455B6F1FB\\Address_Home\\001.006',
@@ -176,7 +179,7 @@ describe('JSON validation with validator.js using ajv module', () => {
       assert.isTrue(valid.success);
     });
     it('should respond with error for invalid JSON', () => {
-      const valid = validator.validate({
+      const valid = entryAttribute.validate({
         message_type: 'Entry Attribute',
         no_entry_emr_id: '4B3188F376E4DD46AC373F4455B6F1FB\\Address_Home',
         emr_id: '4B3188F376E4DD46AC373F4455B6F1FB\\Address_Home\\001.006',
@@ -195,9 +198,38 @@ describe('JSON validation with validator.js using ajv module', () => {
     });
   });
 
+  describe('Patient Practitioner JSON validation scenarios', () => {
+    it('should respond with success for valid JSON', () => {
+      const valid = patientPractitioner.validate({
+        message_type: 'Patient Practitioner',
+        patient_emr_id: '4B3188F376E4DD46AC373F4455B6F1FB',
+        practitioner_emr_id: 'C6AE71E1CC2D4369B2E5FA2EF65C1761',
+        emr_id: '439946DE1FEE4529B9A2D90533F811C6',
+        operation: 'active',
+      });
+      // if (!valid) console.log(validateClinic.errors);
+      assert.isTrue(valid.success);
+    });
+    it('should respond with error for invalid JSON', () => {
+      const valid = patientPractitioner.validate({
+        message_type: 'Patient Practitioner',
+        patient_emr_id: '4B3188F376E4DD46AC373F4455B6F1FB',
+        practitioner_emr_id: 'C6AE71E1CC2D4369B2E5FA2EF65C1761',
+        no_emr_id: '439946DE1FEE4529B9A2D90533F811C6',
+        operation: 'active',
+      });
+
+      assert.isFalse(valid.success);
+      assert.isArray(valid.errors);
+      assert.equal(valid.errors[0].keyword, 'required');
+      assert.equal(valid.errors[0].params.missingProperty, 'emr_id');
+      assert.equal(valid.errors[0].message, 'should have required property \'emr_id\'');
+    });
+  });
+
   describe('State JSON validation scenarios', () => {
     it('should respond with success for valid JSON', () => {
-      const valid = validator.validate({
+      const valid = state.validate({
         message_type: 'State',
         emr_id: '439946DE1FEE4529B9A2D90533F811C6',
         emr_reference: '',
@@ -216,7 +248,7 @@ describe('JSON validation with validator.js using ajv module', () => {
       assert.isTrue(valid.success);
     });
     it('should respond with error for invalid JSON', () => {
-      const valid = validator.validate({
+      const valid = state.validate({
         message_type: 'State',
         emr_id: '439946DE1FEE4529B9A2D90533F811C6',
         emr_reference: '',

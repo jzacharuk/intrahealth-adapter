@@ -5,10 +5,16 @@ const bodyParser = require('body-parser');
 const pg = require('pg');
 const fs = require('fs');
 const path = require('path');
-const classes = require('./classes');
-const validator = require('./validator');
+const Clinic = require('./classes/Clinic');
+const Entry = require('./classes/Entry');
+const EntryAttribute = require('./classes/EntryAttribute');
+const Patient = require('./classes/Patient');
+const PatientPractitioner = require('./classes/PatientPractitioner');
+const Practitioner = require('./classes/Practitioner');
+const State = require('./classes/State');
+const Validator = require('./classes/Validator');
 
-const clinic = new classes.Clinic();
+const apiReq = new Validator();
 
 const dbDefaults = JSON.parse(fs.readFileSync(path.join(__dirname, 'db/defaults.json')));
 
@@ -19,8 +25,6 @@ const pool = new pg.Pool(dbDefaults);
 const jsonParser = bodyParser.json({
   strict: true,
 });
-
-validator.loadSchemas();
 
 app.post('/message/', jsonParser, (req, res) => {
   /*
@@ -36,7 +40,7 @@ app.post('/message/', jsonParser, (req, res) => {
     2. Validate that the body adheres to the JSON Schema.
     If not valid, respond with 400 and the error message, including the list of validation errors.
     */
-    const valid = validator.validate(req.body);
+    const valid = apiReq.validate(req.body);
 
     if (!valid.success) {
       res.status(400).json({
@@ -82,7 +86,7 @@ app.post('/message/', jsonParser, (req, res) => {
             });
           } else {
             // compare, and maybe update
-            clinic.selectByEmrId(client, clinicMsg.emr_id, (err, result) => {
+            Clinic.selectByEmrId(client, clinicMsg.emr_id, (err, result) => {
               if (err) {
                 release();
                 res.status(500).json({
@@ -91,7 +95,7 @@ app.post('/message/', jsonParser, (req, res) => {
                 });
               } else if (result) {
                 // let clinicDbId = result.id;
-                clinic.compare(clinicMsg, result);
+                Clinic.compare(clinicMsg, result);
               }
             });
           }
