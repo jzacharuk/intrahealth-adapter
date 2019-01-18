@@ -35,7 +35,11 @@ module.exports = class Clinic {
       text: 'INSERT INTO universal.clinic(name, hdc_reference, emr_id, emr_reference, emr) VALUES( $1 , $2 , $3 , $4 , $5) RETURNING id ;',
       values: [ins.name, ins.hdc_reference, ins.emr_id, ins.emr_reference, ins.emr],
     }, (err, res) => {
-      callback(err, res.rows[0].id);
+      if (err) {
+        callback(err, null);
+      } else {
+        callback(null, res.rows[0].id);
+      }
     });
   }
 

@@ -84,7 +84,30 @@ describe('intrahealth-adapter', () => {
             done();
           });
       });
-      it('should respond with 400 Unexpected message format ', (done) => {
+      it('should respond with 400 Unexpected message format for schema validation', (done) => {
+        chai.request(apiEndpoint)
+          .post('/message/')
+          .send([{
+            message_type: 'Clinic',
+            emr_id: '439946DE1FEE4529B9A2D90533F811C6',
+            emr_reference: '',
+            operation: 'active',
+            emr: 'EMR Name',
+            no_hdc_reference: 'PRAC1',
+            name: 'Clinic One',
+          }])
+          .end((err, res) => {
+            if (err) done(err);
+            expect(res).to.have.status(400);
+            expect(res).to.be.json;
+            expect(res.body.error).to.equal('Unexpected message format.');
+            expect(res.body.errors[0].keyword).to.equal('required');
+            expect(res.body.errors[0].params.missingProperty).to.equal('hdc_reference');
+            expect(res.body.errors[0].message).to.equal('should have required property \'hdc_reference\'');
+            done();
+          });
+      });
+      it('should respond with 400 Unexpected message format for not an array', (done) => {
         chai.request(apiEndpoint)
           .post('/message/')
           .send({
@@ -100,9 +123,9 @@ describe('intrahealth-adapter', () => {
             if (err) done(err);
             expect(res).to.have.status(400);
             expect(res).to.be.json;
-            expect(res.body.errors[0].keyword).to.equal('required');
-            expect(res.body.errors[0].params.missingProperty).to.equal('hdc_reference');
-            expect(res.body.errors[0].message).to.equal('should have required property \'hdc_reference\'');
+            expect(res.body.error).to.equal('Unexpected message format.');
+            expect(res.body.errors[0].keyword).to.equal('type');
+            expect(res.body.errors[0].message).to.equal('should be array');
             done();
           });
       });

@@ -12,41 +12,6 @@ const dbDefaults = JSON.parse(fs.readFileSync(path.join(__dirname, '../../src/db
 
 const pool = new pg.Pool(dbDefaults);
 
-// const clinic = new Clinic();
-/* 
-describe('Clinic class JSON validation', () => {
-  it('should respond with success for valid JSON', () => {
-    const clinic = new Clinic({
-      message_type: 'Clinic',
-      emr_id: '439946DE1FEE4529B9A2D90533F811C6',
-      emr_reference: '',
-      operation: 'active',
-      emr: 'EMR Name',
-      hdc_reference: 'PRAC1',
-      name: 'Clinic One',
-    });
-    const valid = clinic.validate();
-    assert.isTrue(valid.success);
-  });
-  it('should respond with error for invalid JSON', () => {
-    const clinic = new Clinic({
-      message_type: 'Clinic',
-      emr_id: '439946DE1FEE4529B9A2D90533F811C6',
-      emr_reference: '',
-      operation: 'active',
-      emr: 'EMR Name',
-      no_hdc_reference: 'PRAC1',
-      name: 'Clinic One',
-    });
-    const valid = clinic.validate();
-    assert.isFalse(valid.success);
-    assert.isArray(valid.errors);
-    assert.equal(valid.errors[0].keyword, 'required');
-    assert.equal(valid.errors[0].params.missingProperty, 'hdc_reference');
-    assert.equal(valid.errors[0].message, 'should have required property \'hdc_reference\'');
-  });
-});
- */
 describe('Clinic class compare function', () => {
   it('should respond with match if they do', () => {
     const clinic1 = {
@@ -138,14 +103,14 @@ describe('Clinic class SQL validation', () => {
       done();
     });
   });
-  it('should return null if emr_id is not found clinic.selectById(emr_id)', (done) => {
+  it('should return null if emr_id is not found Clinic.selectByEmrId(emr_id)', (done) => {
     Clinic.selectByEmrId(dbClient, 'doesNotExist', (err, result) => {
       if (err) done(err);
       assert.isNull(result);
       return done();
     });
   });
-  it('should find a result by clinic.selectById(emr_id)', (done) => {
+  it('should find a result by Clinic.selectByEmrId(emr_id)', (done) => {
     Clinic.selectByEmrId(dbClient, '439946DE1FEE4529B9A2D90533F811C6', (err, result) => {
       if (err) done(err);
       assert.equal(result.id, sqlId);

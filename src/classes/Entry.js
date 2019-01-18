@@ -7,7 +7,13 @@ const Shared = require('./Shared');
 module.exports = class Entry {
   static getMessageFields() {
     // TODO: set to right fields for Entry
-    return ['emr', 'emr_reference', 'hdc_reference'];
+    return [
+      'patient_emr_id',
+      'emr_table',
+      'emr_id',
+      'entry_type_id',
+      'emr_reference',
+    ];
   }
 
   static getMessageType() {
@@ -24,7 +30,7 @@ module.exports = class Entry {
 
   static selectByEmrId(dbClient, emrId, callback) {
     dbClient.query({
-      text: 'SELECT id, name, hdc_reference, emr_id, emr_reference, emr FROM universal.clinic WHERE emr_id = $1 ;',
+      text: 'SELECT id, patient_id, entry_type_id, emr_table, emr_id, emr_reference FROM universal.entry WHERE emr_id = $1;',
       values: [emrId],
     }, (err, res) => {
       callback(err, res.rows.length ? res.rows[0] : null);
@@ -33,17 +39,21 @@ module.exports = class Entry {
 
   static insert(dbClient, ins, callback) {
     dbClient.query({
-      text: 'INSERT INTO universal.clinic(name, hdc_reference, emr_id, emr_reference, emr) VALUES( $1 , $2 , $3 , $4 , $5) RETURNING id ;',
-      values: [ins.name, ins.hdc_reference, ins.emr_id, ins.emr_reference, ins.emr],
+      text: 'INSERT INTO universal.entry ( patient_id, entry_type_id, emr_table, emr_id, emr_reference) VALUES( $1 , $2 , $3 , $4 , $5 ) RETURNING id ;',
+      values: [ins.patient_id, ins.entry_type_id, ins.emr_table, ins.emr_id, ins.emr_reference],
     }, (err, res) => {
-      callback(err, res.rows[0].id);
+      if (err) {
+        callback(err, null);
+      } else {
+        callback(null, res.rows[0].id);
+      }
     });
   }
 
   static update(dbClient, upd, callback) {
     dbClient.query({
-      text: 'UPDATE universal.clinic SET name = $3 , hdc_reference = $4 , emr_reference = $5 , emr = $6 WHERE id = $1 AND emr_id = $2 ;',
-      values: [upd.id, upd.emr_id, upd.name, upd.hdc_reference, upd.emr_reference, upd.emr],
+      text: 'UPDATE universal.entry SET patient_id = $3 , entry_type_id = $4 , emr_table = $5 , emr_reference = $6 WHERE id = $1 AND emr_id = $2;',
+      values: [upd.patient_emr_id, upd.entry_type_id, upd.emr_table, upd.emr_reference],
     }, (err, res) => {
       callback(err, res.rowCount);
     });
@@ -51,7 +61,7 @@ module.exports = class Entry {
 
   static delete(dbClient, del, callback) {
     dbClient.query({
-      text: 'DELETE FROM universal.clinic WHERE id = $1 AND emr_id = $2 ;',
+      text: 'DELETE FROM universal.entry WHERE id = $1 AND emr_id = $2 ;',
       values: [del.id, del.emr_id],
     }, (err, res) => {
       callback(err, res.rowCount);
