@@ -7,17 +7,13 @@
 const chai = require('chai');
 const chaiHttp = require('chai-http');
 const pg = require('pg');
-const path = require('path');
 const dbDefaults = require('../src/db/defaults.json');
-// const dbDefaults = JSON.parse(fs.readFileSync(path.join(__dirname, '../../src/db/defaults.json')));
 // const { assert } = chai.assert;
 const assert = chai.assert;
 const expect = chai.expect;
 const apiEndpoint = 'http://localhost:3000';
 
 chai.use(chaiHttp);
-
-
 
 const pool = new pg.Pool(dbDefaults);
 
@@ -60,6 +56,7 @@ describe('intrahealth-adapter', () => {
           text: 'DELETE FROM universal.clinic ;',
         }, (err, res) => {
           release();
+          pool.end();
           if (err) done(err);
           if (res) done();
         });
