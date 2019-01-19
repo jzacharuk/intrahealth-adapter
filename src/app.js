@@ -14,6 +14,16 @@ const Practitioner = require('./classes/Practitioner');
 const State = require('./classes/State');
 const Validator = require('./classes/Validator');
 
+const types = {
+  Clinic: Clinic.getMessageType(),
+  Entry: Entry.getMessageType(),
+  EntryAttribute: EntryAttribute.getMessageType(),
+  Patient: Patient.getMessageType(),
+  PatientPractitioner: PatientPractitioner.getMessageType(),
+  Practitioner: Practitioner.getMessageType(),
+  State: State.getMessageType(),
+};
+
 const apiReq = new Validator();
 
 const dbDefaults = JSON.parse(fs.readFileSync(path.join(__dirname, 'db/defaults.json')));
@@ -27,17 +37,19 @@ const jsonParser = bodyParser.json({
 });
 
 app.post('/message/', jsonParser, (req, res) => {
+  let throwErr = null;
+  let responseArray = [];
   try {
     /*
     1. Validate that the body is valid JSON and parse.
     If not valid, respond with 415 and the error message.
     */
     if (!req.body) {
-      const thrO = {
+      throwErr = {
         httpCode: 415,
         error: 'Invalid JSON request.',
       };
-      throw thrO;
+      throw throwErr;
     }
     /*
     2. Validate that the body adheres to the JSON Schema.
@@ -46,12 +58,12 @@ app.post('/message/', jsonParser, (req, res) => {
     const valid = apiReq.validate(req.body);
 
     if (!valid.success) {
-      const thrO = {
+      throwErr = {
         httpCode: 400,
         error: 'Unexpected message format.',
         errors: valid.errors,
       };
-      throw thrO;
+      throw throwErr;
       /* TODO: figure out what errors structure should be
         since those Objects can be really big
         --------------------------------------------------
@@ -74,18 +86,19 @@ app.post('/message/', jsonParser, (req, res) => {
     if it exists.
     */
     let clinicEmrId = null;
+    let clinicDbId = null;
     let firstMessage = null;
     let clinicMsg = null;
-    if (Array.isArray(res.body) && res.body.length) {
-      firstMessage = res.body[0];
+    if (Array.isArray(req.body) && req.body.length) {
+      firstMessage = req.body[0];
     } else {
-      const thrO = {
+      throwErr = {
         httpCode: 400,
         error: 'Unexpected message format',
       };
-      throw thrO;
+      throw throwErr;
     }
-    if (firstMessage.message_type === Clinic.getMessageType()) {
+    if (firstMessage.message_type === types.Clinic) {
       clinicMsg = firstMessage;
       clinicEmrId = firstMessage.emr_id;
     } else {
@@ -94,11 +107,11 @@ app.post('/message/', jsonParser, (req, res) => {
       if (found) {
         // set clinicid to found
       } else {
-        const thrO = {
+        throwErr = {
           httpCode: 400,
           error: 'A clinic_emr_id is required.',
         };
-        throw thrO;
+        throw throwErr;
       }
     }
 
@@ -107,11 +120,11 @@ app.post('/message/', jsonParser, (req, res) => {
       pool.connect((connErr, client, release) => {
         if (connErr) {
           release();
-          const thrO = {
+          throwErr = {
             httpCode: 500,
             error: 'Server error connecting to database.',
           };
-          throw thrO;
+          throw throwErr;
         }
         // define the rollback function to call if anything fails in transaction
         const shouldAbort = (err) => {
@@ -130,46 +143,122 @@ app.post('/message/', jsonParser, (req, res) => {
         // begin the transaction
         client.query('BEGIN', (err) => {
           if (shouldAbort(err)) {
-            const thrO = {
+            throwErr = {
               httpCode: 500,
               error: 'transaction BEGIN failed.',
             };
-            throw thrO;
+            throw throwErr;
           }
 
-          // compare, and maybe update
+          // Get row from universal.clinic where universal.clinic.emr_id = file clinic emr id.
           Clinic.selectByEmrId(client, clinicEmrId, (selErr, result) => {
             if (shouldAbort(selErr)) {
-              release();
-              const thrO = {
+              throwErr = {
                 httpCode: 500,
                 error: 'Server error clinic.selectByEmrId.',
               };
-              throw thrO;
-            } else if (result) {
-              // let clinicDbId = result.id;
-              Clinic.compare(clinicMsg, result);
-
-              client.query('COMMIT', (commitErr) => {
-                release();
-                if (shouldAbort(commitErr)) {
-                  const thrO = {
+              throw throwErr;
+            }
+            if (result) {
+              clinicDbId = result.id;
+              const compResult = Clinic.compare(clinicMsg, result);
+              if (compResult === 'invalid') {
+                throwErr = {
+                  httpCode: 400,
+                  error: 'Invalid Clinic Update',
+                };
+                throw throwErr;
+              } else if (compResult === 'different') {
+                clinicMsg.id = clinicDbId;
+                Clinic.update(client, clinicMsg, (clinUpdErr, rowsUpdated) => {
+                  // TODO: should i check if rowsUpdated !== 1 ?
+                  if (shouldAbort(clinUpdErr) || rowsUpdated !== 1) {
+                    throwErr = {
+                      httpCode: 500,
+                      error: 'Server error Clinic.update().',
+                    };
+                    throw throwErr;
+                  }
+                });
+              }
+            } else if (firstMessage.message_type === types.Clinic) {
+              // If row does not exist, then insert it using data from message.
+              Clinic.insert(client, firstMessage, (insErr, id) => {
+                if (shouldAbort(insErr)) {
+                  throwErr = {
                     httpCode: 500,
-                    error: 'COMMIT failed.',
+                    error: 'Server error clinic.selectByEmrId.',
                   };
-                  throw thrO;
+                  throw throwErr;
                 }
+                clinicDbId = id;
               });
             }
+            // else there was a valid clinic_emr_id but no clinic in the request
+
+            /*
+            c.Synchronize the object with the database depending on the message type.
+            d.If anything fails, respond with 422.
+            4. If everything succeeded, respond with 200.
+            */
+            for (let m = 0; m < req.body.length; m += 1) {
+              const msg = req.body[m];
+              switch (msg.message_type) {
+                case types.Practitioner:
+                  if (msg.clinic_emr_id !== clinicEmrId) {
+                    throwErr = {
+                      httpCode: 500,
+                      error: 'Server error Clinic.update().',
+                    };
+                    throw throwErr;
+                  }
+                  break;
+                case types.Patient:
+                  break;
+                case types.PatientPractitioner:
+                  break;
+                case types.Entry:
+                  break;
+                case types.EntryAttribute:
+                  break;
+                case types.State:
+                  break;
+                case types.Clinic:
+                  // ignore if first message because we already did this
+                  if (m !== 0) {
+                    throwErr = {
+                      httpCode: 400,
+                      error: 'Only one clinic allowed per request.',
+                    };
+                    responseArray.push(msg);
+                    throw throwErr;
+                  }
+                  break;
+                default:
+                  throwErr = {
+                    httpCode: 400,
+                    error: `Invalid message type: ${msg.message_type}`,
+                  };
+                  throw throwErr;
+              }
+            }
+
+            // commit all updates
+            client.query('COMMIT', (commitErr) => {
+              release();
+              if (shouldAbort(commitErr)) {
+                throwErr = {
+                  httpCode: 500,
+                  error: 'COMMIT failed.',
+                };
+                throw throwErr;
+              }
+              res.status(200).json(responseArray);
+            });
           });
         });
       });
     }
-    /*
-    c.Synchronize the object with the database depending on the message type.
-    d.If anything fails, respond with 422.
-    4. If everything succeeded, respond with 200.
-    */
   } catch (thrown) {
     if (thrown.httpCode) {
       const body = {

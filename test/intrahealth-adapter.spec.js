@@ -6,13 +6,20 @@
 /* jshint expr:true */
 const chai = require('chai');
 const chaiHttp = require('chai-http');
-
+const pg = require('pg');
+const path = require('path');
+const dbDefaults = require('../src/db/defaults.json');
+// const dbDefaults = JSON.parse(fs.readFileSync(path.join(__dirname, '../../src/db/defaults.json')));
 // const { assert } = chai.assert;
 const assert = chai.assert;
 const expect = chai.expect;
 const apiEndpoint = 'http://localhost:3000';
 
 chai.use(chaiHttp);
+
+
+
+const pool = new pg.Pool(dbDefaults);
 
 /*
 invalid record
@@ -41,11 +48,24 @@ report of what happened. INSERTED / UPDATED / NO CHANGE
 
 describe('intrahealth-adapter', () => {
   describe('POST /message/', () => {
-    before('Wipe database to prepare for testing.', () => {
+    before('Wipe database to prepare for testing.', (done) => {
       // make sure that the API is up.
       // TODO: Wipe database.
+      pool.connect((connErr, client, release) => {
+        if (connErr) {
+          release();
+          done(connErr);
+        }
+        client.query({
+          text: 'DELETE FROM universal.clinic ;',
+        }, (err, res) => {
+          release();
+          if (err) done(err);
+          if (res) done();
+        });
+      });
     });
-    describe.only('negative tests, error handling scenarios', () => {
+    describe('negative tests, error handling scenarios', () => {
       it('does not allow HTTP GET, returns 404', (done) => { // <= Pass in done callback
         chai.request(apiEndpoint)
           .get('/message/')
@@ -154,7 +174,8 @@ describe('intrahealth-adapter', () => {
           });
       });
     });
-    describe('Clinic ', () => {
+    // Clinic specific test cases
+    describe.only('Clinic ', () => {
       it('should successfully insert a Clinic record', (done) => {
         chai.request(apiEndpoint)
           .post('/message/')
@@ -176,11 +197,47 @@ describe('intrahealth-adapter', () => {
             done();
           });
       });
-      it('should successfully update a record', () => {
-        assert.deepEqual('actual', 'expected');
+      it('should successfully update a record', (done) => {
+        chai.request(apiEndpoint)
+          .post('/message/')
+          .send([{
+            message_type: 'Clinic',
+            emr_id: '439946DE1FEE4529B9A2D90533F811C6',
+            emr_reference: '',
+            operation: 'active',
+            emr: 'EMR Name',
+            hdc_reference: 'PRAC2',
+            name: 'Clinic Updated',
+          }])
+          .end((err, res) => {
+            if (err) done(err);
+            // console.log(JSON.stringify(res.body));
+            expect(res).to.have.status(200);
+            expect(res).to.be.json;
+            // expect(res.body.status).to.equal('success');
+            done();
+          });
       });
-      it('should successfully do nothing if no changes', () => {
-        assert.deepEqual('actual', 'expected');
+      it('should successfully do nothing if no changes', (done) => {
+        chai.request(apiEndpoint)
+          .post('/message/')
+          .send([{
+            message_type: 'Clinic',
+            emr_id: '439946DE1FEE4529B9A2D90533F811C6',
+            emr_reference: '',
+            operation: 'active',
+            emr: 'EMR Name',
+            hdc_reference: 'PRAC2',
+            name: 'Clinic Updated',
+          }])
+          .end((err, res) => {
+            if (err) done(err);
+            // console.log(JSON.stringify(res.body));
+            expect(res).to.have.status(200);
+            expect(res).to.be.json;
+            // expect(res.body.status).to.equal('success');
+            done();
+          });
       });
     });
     describe('Practitioner ', () => {
