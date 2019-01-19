@@ -8,6 +8,8 @@ const chai = require('chai');
 const chaiHttp = require('chai-http');
 const pg = require('pg');
 const dbDefaults = require('../src/db/defaults.json');
+const testData = require('./data');
+
 // const { assert } = chai.assert;
 const assert = chai.assert;
 const expect = chai.expect;
@@ -146,7 +148,7 @@ describe('intrahealth-adapter', () => {
             done();
           });
       });
-      it('should respond with 422 The message received was valid JSON and matches the required JSON Schema; however, the message could not be processed for another reason.', (done) => {
+      it.skip('should respond with 422 The message received was valid JSON and matches the required JSON Schema; however, the message could not be processed for another reason.', (done) => {
         /* this could be when the timestamp is old,
         or if the id referenced in another message part didn't match */
         chai.request(apiEndpoint)
@@ -172,72 +174,45 @@ describe('intrahealth-adapter', () => {
       });
     });
     // Clinic specific test cases
-    describe.only('Clinic ', () => {
+    describe('Clinic ', () => {
       it('should successfully insert a Clinic record', (done) => {
         chai.request(apiEndpoint)
           .post('/message/')
-          .send([{
-            message_type: 'Clinic',
-            emr_id: '439946DE1FEE4529B9A2D90533F811C6',
-            emr_reference: '',
-            operation: 'active',
-            emr: 'EMR Name',
-            hdc_reference: 'PRAC1',
-            name: 'Clinic One',
-          }])
+          .send(testData.clinicInsert)
           .end((err, res) => {
             if (err) done(err);
-            // console.log(JSON.stringify(res.body));
             expect(res).to.have.status(200);
-            expect(res).to.be.json;
-            // expect(res.body.status).to.equal('success');
+            expect(Array.isArray(res.body)).to.equal(true);
+            expect(res.body).to.have.lengthOf(testData.clinicInsert.length);
             done();
           });
       });
       it('should successfully update a record', (done) => {
         chai.request(apiEndpoint)
           .post('/message/')
-          .send([{
-            message_type: 'Clinic',
-            emr_id: '439946DE1FEE4529B9A2D90533F811C6',
-            emr_reference: '',
-            operation: 'active',
-            emr: 'EMR Name',
-            hdc_reference: 'PRAC2',
-            name: 'Clinic Updated',
-          }])
+          .send(testData.clinicUpdate)
           .end((err, res) => {
             if (err) done(err);
-            // console.log(JSON.stringify(res.body));
             expect(res).to.have.status(200);
-            expect(res).to.be.json;
-            // expect(res.body.status).to.equal('success');
+            expect(Array.isArray(res.body)).to.equal(true);
+            expect(res.body).to.have.lengthOf(testData.clinicUpdate.length);
             done();
           });
       });
       it('should successfully do nothing if no changes', (done) => {
         chai.request(apiEndpoint)
           .post('/message/')
-          .send([{
-            message_type: 'Clinic',
-            emr_id: '439946DE1FEE4529B9A2D90533F811C6',
-            emr_reference: '',
-            operation: 'active',
-            emr: 'EMR Name',
-            hdc_reference: 'PRAC2',
-            name: 'Clinic Updated',
-          }])
+          .send(testData.clinicUpdate)
           .end((err, res) => {
             if (err) done(err);
-            // console.log(JSON.stringify(res.body));
             expect(res).to.have.status(200);
-            expect(res).to.be.json;
-            // expect(res.body.status).to.equal('success');
+            expect(Array.isArray(res.body)).to.equal(true);
+            expect(res.body).to.have.lengthOf(testData.clinicUpdate.length);
             done();
           });
       });
     });
-    describe('Practitioner ', () => {
+    describe.skip('Practitioner ', () => {
       it('should handle failing clinic', () => {
         // QUESTION: what does failing clinic mean?
         /*
@@ -257,7 +232,7 @@ describe('intrahealth-adapter', () => {
         assert.deepEqual('actual', 'expected');
       });
     });
-    describe('Patient ', () => {
+    describe.skip('Patient ', () => {
       it('should handle failing clinic', () => {
         // QUESTION: what does failing clinic mean?
         assert.deepEqual('actual', 'expected');
@@ -272,7 +247,7 @@ describe('intrahealth-adapter', () => {
         assert.deepEqual('actual', 'expected');
       });
     });
-    describe('Entry ', () => {
+    describe.skip('Entry ', () => {
       it('should handle Patient does not exist', () => {
         // QUESTION: how should this be handled?
         assert.deepEqual('actual', 'expected');
@@ -291,7 +266,7 @@ describe('intrahealth-adapter', () => {
         assert.deepEqual('actual', 'expected');
       });
     });
-    describe('Entry Attribute ', () => {
+    describe.skip('Entry Attribute ', () => {
       it('should handle Clinic does not exist', () => {
         // QUESTION: how should this be handled?
         /*

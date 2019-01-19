@@ -1,8 +1,7 @@
 /* eslint-env */
 /* jshint esversion: 6 */
-const path = require('path');
-const fs = require('fs');
 const Shared = require('./Shared');
+const schema = require('../schemas/Clinic.json');
 
 module.exports = class Clinic {
   static getMessageFields() {
@@ -18,7 +17,8 @@ module.exports = class Clinic {
   }
 
   static getSchema() {
-    return JSON.parse(fs.readFileSync(path.join(__dirname, '../schemas/Clinic.json')));
+    return schema;
+    // return JSON.parse(fs.readFileSync(path.join(__dirname, '../schemas/Clinic.json')));
   }
 
   static selectByEmrId(dbClient, emrId, callback) {
@@ -26,7 +26,11 @@ module.exports = class Clinic {
       text: 'SELECT id, name, hdc_reference, emr_id, emr_reference, emr FROM universal.clinic WHERE emr_id = $1 ;',
       values: [emrId],
     }, (err, res) => {
-      callback(err, res.rows.length ? res.rows[0] : null);
+      if (res.rows.length > 1) {
+        callback(`multiple clinic rows found for emr_id: ${emrId}`, null);
+      } else {
+        callback(err, res.rows.length ? res.rows[0] : null);
+      }
     });
   }
 

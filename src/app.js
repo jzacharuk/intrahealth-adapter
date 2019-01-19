@@ -38,7 +38,7 @@ const jsonParser = bodyParser.json({
 
 app.post('/message/', jsonParser, (req, res) => {
   let throwErr = null;
-  let responseArray = [];
+  const responseArray = [];
   try {
     /*
     1. Validate that the body is valid JSON and parse.
@@ -153,9 +153,15 @@ app.post('/message/', jsonParser, (req, res) => {
           // Get row from universal.clinic where universal.clinic.emr_id = file clinic emr id.
           Clinic.selectByEmrId(client, clinicEmrId, (selErr, result) => {
             if (shouldAbort(selErr)) {
+              if (typeof selErr === 'string' && selErr.startsWith('multiple clinic rows found')) {
+                throwErr = {
+                  httpCode: 400,
+                  error: selErr,
+                };
+              }
               throwErr = {
                 httpCode: 500,
-                error: 'Server error clinic.selectByEmrId.',
+                error: 'Server error Clinic.selectByEmrId.',
               };
               throw throwErr;
             }
@@ -230,9 +236,9 @@ app.post('/message/', jsonParser, (req, res) => {
                       httpCode: 400,
                       error: 'Only one clinic allowed per request.',
                     };
-                    responseArray.push(msg);
                     throw throwErr;
                   }
+                  responseArray.push(msg);
                   break;
                 default:
                   throwErr = {
