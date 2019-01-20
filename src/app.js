@@ -115,199 +115,250 @@ app.post('/message/', jsonParser, (req, res) => {
       }
     }
 
-    if (clinicEmrId) {
-      // TODO: connect to the database for the clinic
-      pool.connect((connErr, client, release) => {
-        if (connErr) {
-          release();
+    // TODO: connect to a different database for each clinic
+    pool.connect((connErr, client, release) => {
+      if (connErr) {
+        release();
+        throwErr = {
+          httpCode: 500,
+          error: 'Server error connecting to database.',
+        };
+        throw throwErr;
+      }
+      // define the rollback function to call if anything fails in transaction
+      const shouldAbort = (err) => {
+        if (err) {
+          // console.error('Error in transaction', err.stack)
+          client.query('ROLLBACK', (rbErr) => {
+            if (rbErr) {
+              // console.error('Error rolling back client', rbErr.stack)
+            }
+            // release the client back to the pool
+            release();
+          });
+        }
+        return !!err;
+      };
+
+      const processClinic = (index, msg, callback) => {
+        // ignore if first message because we already did this
+        if (index !== 0) {
           throwErr = {
-            httpCode: 500,
-            error: 'Server error connecting to database.',
+            httpCode: 400,
+            error: 'Only one clinic allowed per request.',
           };
           throw throwErr;
         }
-        // define the rollback function to call if anything fails in transaction
-        const shouldAbort = (err) => {
-          if (err) {
-            // console.error('Error in transaction', err.stack)
-            client.query('ROLLBACK', (rbErr) => {
-              if (rbErr) {
-                // console.error('Error rolling back client', rbErr.stack)
-              }
-              // release the client back to the pool
-              release();
-            });
-          }
-          return !!err;
-        };
-
-        const processClinic = (index, msg, callback) => {
-          // ignore if first message because we already did this
-          if (index !== 0) {
-            throwErr = {
-              httpCode: 400,
-              error: 'Only one clinic allowed per request.',
-            };
+        // Get row from universal.clinic where universal.clinic.emr_id = file clinic emr id.
+        Clinic.selectByEmrId(client, clinicEmrId, (selErr, result) => {
+          if (shouldAbort(selErr)) {
+            if (typeof selErr === 'string' && selErr.startsWith('multiple')) {
+              throwErr = {
+                httpCode: 400,
+                error: selErr,
+              };
+            } else {
+              throwErr = {
+                httpCode: 500,
+                error: 'Server error Clinic.selectByEmrId.',
+              };
+            }
             throw throwErr;
           }
-          // Get row from universal.clinic where universal.clinic.emr_id = file clinic emr id.
-          Clinic.selectByEmrId(client, clinicEmrId, (selErr, result) => {
-            if (shouldAbort(selErr)) {
-              if (typeof selErr === 'string' && selErr.startsWith('multiple clinic rows found')) {
-                throwErr = {
-                  httpCode: 400,
-                  error: selErr,
-                };
-              } else {
-                throwErr = {
-                  httpCode: 500,
-                  error: 'Server error Clinic.selectByEmrId.',
-                };
-              }
+          const outcome = msg;
+          if (result) {
+            clinicDbId = result.id;
+            const compResult = Clinic.compare(clinicMsg, result);
+            if (compResult === 'invalid') {
+              throwErr = {
+                httpCode: 400,
+                error: 'Invalid Clinic Update',
+              };
               throw throwErr;
-            }
-            const outcome = msg;
-            if (result) {
-              clinicDbId = result.id;
-              const compResult = Clinic.compare(clinicMsg, result);
-              if (compResult === 'invalid') {
-                throwErr = {
-                  httpCode: 400,
-                  error: 'Invalid Clinic Update',
-                };
-                throw throwErr;
-              } else if (compResult === 'different') {
-                clinicMsg.id = clinicDbId;
-                Clinic.update(client, clinicMsg, (clinUpdErr, rowsUpdated) => {
-                  // TODO: should i check if rowsUpdated !== 1 ?
-                  if (shouldAbort(clinUpdErr) || rowsUpdated !== 1) {
+            } else if (compResult === 'different') {
+              clinicMsg.id = clinicDbId;
+              Clinic.update(client, clinicMsg, (updErr) => {
+                if (shouldAbort(updErr)) {
+                  if (typeof updErr === 'string' && updErr.startsWith('multiple')) {
+                    throwErr = {
+                      httpCode: 400,
+                      error: updErr,
+                    };
+                  } else {
                     throwErr = {
                       httpCode: 500,
                       error: 'Server error Clinic.update().',
                     };
-                    throw throwErr;
                   }
-                  outcome.result = 'Updated';
-                  responseArray.push(outcome);
-                });
-              } else if (compResult === 'match') {
-                // data matched the database
-                outcome.result = 'No change';
-                responseArray.push(outcome);
-              }
-            } else if (firstMessage.message_type === types.Clinic) {
-              // If row does not exist, then insert it using data from message.
-              Clinic.insert(client, firstMessage, (insErr, id) => {
-                if (shouldAbort(insErr)) {
-                  throwErr = {
-                    httpCode: 500,
-                    error: 'Server error clinic.selectByEmrId.',
-                  };
                   throw throwErr;
                 }
-                clinicDbId = id;
-                outcome.result = 'Inserted';
+                outcome.result = 'Updated';
                 responseArray.push(outcome);
+                callback(index + 1);
               });
+            } else if (compResult === 'match') {
+              // data matched the database
+              outcome.result = 'No change';
+              responseArray.push(outcome);
+              callback(index + 1);
             }
-            // else there was a valid clinic_emr_id but no clinic in the request
-            callback(index + 1);
-          });
-        };
-
-        const processPractitioner = (index, msg, callback) => {
-          if (msg.clinic_emr_id !== clinicEmrId) {
-            throwErr = {
-              httpCode: 500,
-              error: 'Server error Clinic.update().',
-            };
-            throw throwErr;
-          }
-          /*
-  Practitioner.selectByEmrId(client, msg.emr_id, clinicDbId, (pracSelErr, pracSelRes) => {
-    if (shouldAbort(pracSelErr)) {
-      if (typeof pracSelErr === 'string' && pracSelErr.startsWith('multiple clinic rows found')) {
-        throwErr = {
-          httpCode: 400,
-          error: pracSelErr,
-        };
-      } else {
-        throwErr = {
-          httpCode: 500,
-          error: 'Server error Clinic.selectByEmrId.',
-        };
-      }
-      throw throwErr;
-    }
-    if (pracSelRes) {
-      // process pracititioner
-    }
-  });
-                  */
-          callback(index + 1);
-        }; // end processPractitioner()
-        // begin the transaction
-        client.query('BEGIN', (err) => {
-          if (shouldAbort(err)) {
-            throwErr = {
-              httpCode: 500,
-              error: 'transaction BEGIN failed.',
-            };
-            throw throwErr;
-          }
-          /*
-          c.Synchronize the object with the database depending on the message type.
-          d.If anything fails, respond with 422.
-          4. If everything succeeded, respond with 200.
-          */
-          // for (let m = 0; m < req.body.length; m += 1) {
-          function processNextMessage(index) {
-            if (index >= req.body.length) {
-              // commit all updates
-              client.query('COMMIT', (commitErr) => {
-                release();
-                if (shouldAbort(commitErr)) {
-                  throwErr = {
-                    httpCode: 500,
-                    error: 'COMMIT failed.',
-                  };
-                  throw throwErr;
-                }
-                res.status(200).json(responseArray);
-              });
-              return;
-            }
-            const msg = req.body[index];
-            switch (msg.message_type) {
-              case types.Practitioner:
-                processPractitioner(index, msg, processNextMessage);
-                break;
-              case types.Patient:
-                break;
-              case types.PatientPractitioner:
-                break;
-              case types.Entry:
-                break;
-              case types.EntryAttribute:
-                break;
-              case types.State:
-                break;
-              case types.Clinic:
-                processClinic(index, msg, processNextMessage);
-                break;
-              default:
+          } else if (firstMessage.message_type === types.Clinic) {
+            // If row does not exist, then insert it using data from message.
+            Clinic.insert(client, firstMessage, (insErr, id) => {
+              if (shouldAbort(insErr)) {
                 throwErr = {
-                  httpCode: 400,
-                  error: `Message [${index}] had invalid message type: ${msg.message_type}`,
+                  httpCode: 500,
+                  error: 'Server error Clinic.insert().',
                 };
                 throw throwErr;
-            }
+              }
+              clinicDbId = id;
+              outcome.result = 'Inserted';
+              responseArray.push(outcome);
+              callback(index + 1);
+            });
           }
-          // start recursing over array
-          processNextMessage(0);
+          // else there was a valid clinic_emr_id but no clinic in the request
         });
+      };
+
+      const processPractitioner = (index, msg, callback) => {
+        if (msg.clinic_emr_id !== clinicEmrId) {
+          throwErr = {
+            httpCode: 400,
+            error: `clinic_emr_id: ${msg.clinic_emr_id} did not match ${clinicEmrId}`,
+          };
+          throw throwErr;
+        }
+
+        Practitioner.selectByEmrId(client, msg.emr_id, clinicDbId, (selErr, result) => {
+          if (shouldAbort(selErr)) {
+            if (typeof selErr === 'string' && selErr.startsWith('multiple')) {
+              throwErr = {
+                httpCode: 400,
+                error: selErr,
+              };
+            } else {
+              throwErr = {
+                httpCode: 500,
+                error: 'Server error Practitioner.selectByEmrId().',
+              };
+            }
+            throw throwErr;
+          }
+          const outcome = msg;
+          if (result) {
+            const compResult = Practitioner.compare(msg, result);
+            if (compResult === 'invalid') {
+              throwErr = {
+                httpCode: 400,
+                error: `Invalid Practitioner Update on message[${index}]`,
+              };
+              throw throwErr;
+            } else if (compResult === 'different') {
+              Practitioner.update(client, clinicMsg, (updErr) => {
+                if (shouldAbort(updErr)) {
+                  if (typeof updErr === 'string' && updErr.startsWith('multiple')) {
+                    throwErr = {
+                      httpCode: 400,
+                      error: updErr,
+                    };
+                  } else {
+                    throwErr = {
+                      httpCode: 500,
+                      error: 'Server error Practitioner.update().',
+                    };
+                  }
+                  throw throwErr;
+                }
+                outcome.result = 'Updated';
+                responseArray.push(outcome);
+              });
+            } else if (compResult === 'match') {
+              // data matched the database
+              outcome.result = 'No change';
+              responseArray.push(outcome);
+              callback(index + 1);
+            }
+          } else {
+            // If row does not exist, then insert it using data from message.
+            Practitioner.insert(client, msg, clinicDbId, (insErr, id) => {
+              if (shouldAbort(insErr)) {
+                throwErr = {
+                  httpCode: 500,
+                  error: 'Server error Practitioner.insert().',
+                };
+                throw throwErr;
+              }
+              const pracId = id;
+              outcome.result = 'Inserted';
+              responseArray.push(outcome);
+              callback(index + 1);
+            });
+          }
+        });
+      }; // end processPractitioner()
+      // begin the transaction
+      client.query('BEGIN', (err) => {
+        if (shouldAbort(err)) {
+          throwErr = {
+            httpCode: 500,
+            error: 'transaction BEGIN failed.',
+          };
+          throw throwErr;
+        }
+        /*
+        c.Synchronize the object with the database depending on the message type.
+        d.If anything fails, respond with 422.
+        4. If everything succeeded, respond with 200.
+        */
+        // for (let m = 0; m < req.body.length; m += 1) {
+        function processNextMessage(index) {
+          if (index >= req.body.length) {
+            // commit all updates
+            client.query('COMMIT', (commitErr) => {
+              release();
+              if (shouldAbort(commitErr)) {
+                throwErr = {
+                  httpCode: 500,
+                  error: 'COMMIT failed.',
+                };
+                throw throwErr;
+              }
+              res.status(200).json(responseArray);
+            });
+            return;
+          }
+          const msg = req.body[index];
+          switch (msg.message_type) {
+            case types.Practitioner:
+              processPractitioner(index, msg, processNextMessage);
+              break;
+            case types.Patient:
+              break;
+            case types.PatientPractitioner:
+              break;
+            case types.Entry:
+              break;
+            case types.EntryAttribute:
+              break;
+            case types.State:
+              break;
+            case types.Clinic:
+              processClinic(index, msg, processNextMessage);
+              break;
+            default:
+              throwErr = {
+                httpCode: 400,
+                error: `Message [${index}] had invalid message type: ${msg.message_type}`,
+              };
+              throw throwErr;
+          }
+        }
+        // start recursing over array
+        processNextMessage(0);
       });
-    }
+    });
   } catch (thrown) {
     if (thrown.httpCode) {
       const body = {

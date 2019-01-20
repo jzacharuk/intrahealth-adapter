@@ -24,23 +24,37 @@ module.exports = class Practitioner {
   static selectByEmrId(dbClient, emrId, clinicId, callback) {
     dbClient.query({
       text: `
-        SELECT *
-        FROM universal.practitioner;
-        WHERE emr_id = $1 and clinic_id = $2;
-        `,
+        SELECT * FROM universal.practitioner
+        WHERE emr_id = $1 and clinic_id = $2; `,
       values: [
         emrId,
         clinicId,
       ],
     }, (err, res) => {
-      callback(err, res.rows.length ? res.rows[0] : null);
+      if (err) {
+        callback(err, null);
+      } else if (res.rows.length > 1) {
+        callback(`multiple practitioner rows found for emr_id: ${emrId}`, null);
+      } else {
+        callback(err, res.rows.length ? res.rows[0] : null);
+      }
     });
   }
 
-  static insert(dbClient, ins, callback) {
+  static insert(dbClient, ins, clinicId, callback) {
     dbClient.query({
-      text: 'INSERT INTO universal.clinic(name, hdc_reference, emr_id, emr_reference, emr) VALUES( $1 , $2 , $3 , $4 , $5) RETURNING id ;',
-      values: [ins.name, ins.hdc_reference, ins.emr_id, ins.emr_reference, ins.emr],
+      text: `INSERT INTO universal.practitioner(
+        clinic_id, name, identifier, identifier_type, emr_id, emr_reference)
+        VALUES( $1 , $2 , $3 , $4 , $5 , $6 ) RETURNING id; `,
+      values: [
+        clinicId,
+        ins.name,
+        ins.identifier,
+        ins.identifier_type,
+        ins.emr_id,
+        ins.emr_reference,
+        // ins.role,
+      ],
     }, (err, res) => {
       callback(err, res.rows[0].id);
     });
@@ -51,7 +65,13 @@ module.exports = class Practitioner {
       text: 'UPDATE universal.clinic SET name = $3 , hdc_reference = $4 , emr_reference = $5 , emr = $6 WHERE id = $1 AND emr_id = $2 ;',
       values: [upd.id, upd.emr_id, upd.name, upd.hdc_reference, upd.emr_reference, upd.emr],
     }, (err, res) => {
-      callback(err, res.rowCount);
+      if (err) {
+        callback(err);
+      } else if (res.rowCount > 1) {
+        callback(`multiple practitioner rows found for emr_id: ${upd.emr_id}`, null);
+      } else {
+        callback(null);
+      }
     });
   }
 

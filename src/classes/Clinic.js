@@ -23,10 +23,12 @@ module.exports = class Clinic {
 
   static selectByEmrId(dbClient, emrId, callback) {
     dbClient.query({
-      text: 'SELECT id, name, hdc_reference, emr_id, emr_reference, emr FROM universal.clinic WHERE emr_id = $1 ;',
+      text: 'SELECT * FROM universal.clinic WHERE emr_id = $1 ;',
       values: [emrId],
     }, (err, res) => {
-      if (res.rows.length > 1) {
+      if (err) {
+        callback(err, null);
+      } else if (res.rows.length > 1) {
         callback(`multiple clinic rows found for emr_id: ${emrId}`, null);
       } else {
         callback(err, res.rows.length ? res.rows[0] : null);
@@ -69,7 +71,13 @@ module.exports = class Clinic {
         upd.emr,
       ],
     }, (err, res) => {
-      callback(err, res.rowCount);
+      if (err) {
+        callback(err);
+      } else if (res.rowCount > 1) {
+        callback(`multiple clinic rows found for emr_id: ${upd.emr_id}`);
+      } else {
+        callback(null);
+      }
     });
   }
 
