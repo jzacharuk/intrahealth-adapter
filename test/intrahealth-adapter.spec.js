@@ -194,6 +194,7 @@ describe('intrahealth-adapter', () => {
             expect(res).to.have.status(200);
             expect(Array.isArray(res.body)).to.equal(true);
             expect(res.body).to.have.lengthOf(testData.clinicInsert.length);
+            expect(res.body[0].result).to.equal('Inserted');
             done();
           });
       });
@@ -206,6 +207,7 @@ describe('intrahealth-adapter', () => {
             expect(res).to.have.status(200);
             expect(Array.isArray(res.body)).to.equal(true);
             expect(res.body).to.have.lengthOf(testData.clinicUpdate.length);
+            expect(res.body[0].result).to.equal('Updated');
             done();
           });
       });
@@ -218,6 +220,7 @@ describe('intrahealth-adapter', () => {
             expect(res).to.have.status(200);
             expect(Array.isArray(res.body)).to.equal(true);
             expect(res.body).to.have.lengthOf(testData.clinicUpdate.length);
+            expect(res.body[0].result).to.equal('No change');
             done();
           });
       });

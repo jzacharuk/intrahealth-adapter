@@ -140,16 +140,16 @@ app.post('/message/', jsonParser, (req, res) => {
           }
           return !!err;
         };
-        // begin the transaction
-        client.query('BEGIN', (err) => {
-          if (shouldAbort(err)) {
+
+        const processClinic = (index, msg, callback) => {
+          // ignore if first message because we already did this
+          if (index !== 0) {
             throwErr = {
-              httpCode: 500,
-              error: 'transaction BEGIN failed.',
+              httpCode: 400,
+              error: 'Only one clinic allowed per request.',
             };
             throw throwErr;
           }
-
           // Get row from universal.clinic where universal.clinic.emr_id = file clinic emr id.
           Clinic.selectByEmrId(client, clinicEmrId, (selErr, result) => {
             if (shouldAbort(selErr)) {
@@ -166,6 +166,7 @@ app.post('/message/', jsonParser, (req, res) => {
               }
               throw throwErr;
             }
+            const outcome = msg;
             if (result) {
               clinicDbId = result.id;
               const compResult = Clinic.compare(clinicMsg, result);
@@ -186,7 +187,13 @@ app.post('/message/', jsonParser, (req, res) => {
                     };
                     throw throwErr;
                   }
+                  outcome.result = 'Updated';
+                  responseArray.push(outcome);
                 });
+              } else if (compResult === 'match') {
+                // data matched the database
+                outcome.result = 'No change';
+                responseArray.push(outcome);
               }
             } else if (firstMessage.message_type === types.Clinic) {
               // If row does not exist, then insert it using data from message.
@@ -199,91 +206,105 @@ app.post('/message/', jsonParser, (req, res) => {
                   throw throwErr;
                 }
                 clinicDbId = id;
+                outcome.result = 'Inserted';
+                responseArray.push(outcome);
               });
             }
             // else there was a valid clinic_emr_id but no clinic in the request
+            callback(index + 1);
+          });
+        };
 
-            /*
-            c.Synchronize the object with the database depending on the message type.
-            d.If anything fails, respond with 422.
-            4. If everything succeeded, respond with 200.
-            */
-            for (let m = 0; m < req.body.length; m += 1) {
-              const msg = req.body[m];
-              switch (msg.message_type) {
-                case types.Practitioner:
-                  if (msg.clinic_emr_id !== clinicEmrId) {
-                    throwErr = {
-                      httpCode: 500,
-                      error: 'Server error Clinic.update().',
-                    };
-                    throw throwErr;
-                  }
-                  /*
-                  Practitioner.selectByEmrId(client, msg.emr_id, clinicDbId, (pracSelErr, pracSelRes) => {
-                    if (shouldAbort(pracSelErr)) {
-                      if (typeof pracSelErr === 'string' && pracSelErr.startsWith('multiple clinic rows found')) {
-                        throwErr = {
-                          httpCode: 400,
-                          error: pracSelErr,
-                        };
-                      } else {
-                        throwErr = {
-                          httpCode: 500,
-                          error: 'Server error Clinic.selectByEmrId.',
-                        };
-                      }
-                      throw throwErr;
-                    }
-                    if (pracSelRes) {
-                      // process pracititioner
-                    }
-                  });
+        const processPractitioner = (index, msg, callback) => {
+          if (msg.clinic_emr_id !== clinicEmrId) {
+            throwErr = {
+              httpCode: 500,
+              error: 'Server error Clinic.update().',
+            };
+            throw throwErr;
+          }
+          /*
+  Practitioner.selectByEmrId(client, msg.emr_id, clinicDbId, (pracSelErr, pracSelRes) => {
+    if (shouldAbort(pracSelErr)) {
+      if (typeof pracSelErr === 'string' && pracSelErr.startsWith('multiple clinic rows found')) {
+        throwErr = {
+          httpCode: 400,
+          error: pracSelErr,
+        };
+      } else {
+        throwErr = {
+          httpCode: 500,
+          error: 'Server error Clinic.selectByEmrId.',
+        };
+      }
+      throw throwErr;
+    }
+    if (pracSelRes) {
+      // process pracititioner
+    }
+  });
                   */
-                  break;
-                case types.Patient:
-                  break;
-                case types.PatientPractitioner:
-                  break;
-                case types.Entry:
-                  break;
-                case types.EntryAttribute:
-                  break;
-                case types.State:
-                  break;
-                case types.Clinic:
-                  // ignore if first message because we already did this
-                  if (m !== 0) {
-                    throwErr = {
-                      httpCode: 400,
-                      error: 'Only one clinic allowed per request.',
-                    };
-                    throw throwErr;
-                  }
-                  responseArray.push(msg);
-                  break;
-                default:
+          callback(index + 1);
+        }; // end processPractitioner()
+        // begin the transaction
+        client.query('BEGIN', (err) => {
+          if (shouldAbort(err)) {
+            throwErr = {
+              httpCode: 500,
+              error: 'transaction BEGIN failed.',
+            };
+            throw throwErr;
+          }
+          /*
+          c.Synchronize the object with the database depending on the message type.
+          d.If anything fails, respond with 422.
+          4. If everything succeeded, respond with 200.
+          */
+          // for (let m = 0; m < req.body.length; m += 1) {
+          function processNextMessage(index) {
+            if (index >= req.body.length) {
+              // commit all updates
+              client.query('COMMIT', (commitErr) => {
+                release();
+                if (shouldAbort(commitErr)) {
                   throwErr = {
-                    httpCode: 400,
-                    error: `Invalid message type: ${msg.message_type}`,
+                    httpCode: 500,
+                    error: 'COMMIT failed.',
                   };
                   throw throwErr;
-              }
+                }
+                res.status(200).json(responseArray);
+              });
+              return;
             }
-
-            // commit all updates
-            client.query('COMMIT', (commitErr) => {
-              release();
-              if (shouldAbort(commitErr)) {
+            const msg = req.body[index];
+            switch (msg.message_type) {
+              case types.Practitioner:
+                processPractitioner(index, msg, processNextMessage);
+                break;
+              case types.Patient:
+                break;
+              case types.PatientPractitioner:
+                break;
+              case types.Entry:
+                break;
+              case types.EntryAttribute:
+                break;
+              case types.State:
+                break;
+              case types.Clinic:
+                processClinic(index, msg, processNextMessage);
+                break;
+              default:
                 throwErr = {
-                  httpCode: 500,
-                  error: 'COMMIT failed.',
+                  httpCode: 400,
+                  error: `Message [${index}] had invalid message type: ${msg.message_type}`,
                 };
                 throw throwErr;
-              }
-              res.status(200).json(responseArray);
-            });
-          });
+            }
+          }
+          // start recursing over array
+          processNextMessage(0);
         });
       });
     }
