@@ -1,0 +1,11 @@
+[{
+  "message_type": "Practitioner",
+  "emr_id": "C6AE71E1CC2D4369B2E5FA2EF65C1761",
+  "emr_reference": "",
+  "operation": "active",
+  "clinic_emr_id": "DOES NOT EXIST",
+  "identifier": "01234",
+  "identifier_type": "MSP",
+  "name": "Provider Temporary",
+  "role": "Paramedical;Nurse"
+}]

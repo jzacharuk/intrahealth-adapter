@@ -14,7 +14,7 @@ const testData = require('./data');
 const assert = chai.assert;
 const expect = chai.expect;
 const apiEndpoint = 'http://localhost:3000';
-
+const uri = '/message/';
 chai.use(chaiHttp);
 
 const pool = new pg.Pool(dbDefaults);
@@ -49,13 +49,23 @@ describe('intrahealth-adapter', () => {
     before('Wipe database to prepare for testing.', (done) => {
       // make sure that the API is up.
       // TODO: Wipe database.
+      const wipeQuery = `
+        DELETE FROM universal.attribute;
+        DELETE FROM universal.clinic; 
+        DELETE FROM universal.entry;
+        DELETE FROM universal.entry_attribute;
+        DELETE FROM universal.patient;
+        DELETE FROM universal.patient_practitioner;
+        DELETE FROM universal.practitioner;
+        DELETE FROM universal.state;
+      `;
       pool.connect((connErr, client, release) => {
         if (connErr) {
           release();
           done(connErr);
         }
         client.query({
-          text: 'DELETE FROM universal.clinic ;',
+          text: wipeQuery,
         }, (err, res) => {
           release();
           pool.end();
@@ -67,7 +77,7 @@ describe('intrahealth-adapter', () => {
     describe('negative tests, error handling scenarios', () => {
       it('does not allow HTTP GET, returns 404', (done) => { // <= Pass in done callback
         chai.request(apiEndpoint)
-          .get('/message/')
+          .get(uri)
           .end((err, res) => {
             if (err) done(err);
             expect(res).to.have.status(404);
@@ -92,7 +102,7 @@ describe('intrahealth-adapter', () => {
       });
       it('should respond with 415 and the error message on invalid JSON ', (done) => {
         chai.request(apiEndpoint)
-          .post('/message/')
+          .post(uri)
           .set('Content-Type', 'application/json')
           .send('<xml>not JSON</xml>')
           .end((err, res) => {
@@ -105,7 +115,7 @@ describe('intrahealth-adapter', () => {
       });
       it('should respond with 400 Unexpected message format for schema validation', (done) => {
         chai.request(apiEndpoint)
-          .post('/message/')
+          .post(uri)
           .send([{
             message_type: 'Clinic',
             emr_id: '439946DE1FEE4529B9A2D90533F811C6',
@@ -128,7 +138,7 @@ describe('intrahealth-adapter', () => {
       });
       it('should respond with 400 Unexpected message format for not an array', (done) => {
         chai.request(apiEndpoint)
-          .post('/message/')
+          .post(uri)
           .send({
             message_type: 'Clinic',
             emr_id: '439946DE1FEE4529B9A2D90533F811C6',
@@ -152,7 +162,7 @@ describe('intrahealth-adapter', () => {
         /* this could be when the timestamp is old,
         or if the id referenced in another message part didn't match */
         chai.request(apiEndpoint)
-          .post('/message/')
+          .post(uri)
           .send({
             message_type: 'Clinic',
             emr_id: '439946DE1FEE4529B9A2D90533F811C6',
@@ -177,7 +187,7 @@ describe('intrahealth-adapter', () => {
     describe('Clinic ', () => {
       it('should successfully insert a Clinic record', (done) => {
         chai.request(apiEndpoint)
-          .post('/message/')
+          .post(uri)
           .send(testData.clinicInsert)
           .end((err, res) => {
             if (err) done(err);
@@ -189,7 +199,7 @@ describe('intrahealth-adapter', () => {
       });
       it('should successfully update a record', (done) => {
         chai.request(apiEndpoint)
-          .post('/message/')
+          .post(uri)
           .send(testData.clinicUpdate)
           .end((err, res) => {
             if (err) done(err);
@@ -201,7 +211,7 @@ describe('intrahealth-adapter', () => {
       });
       it('should successfully do nothing if no changes', (done) => {
         chai.request(apiEndpoint)
-          .post('/message/')
+          .post(uri)
           .send(testData.clinicUpdate)
           .end((err, res) => {
             if (err) done(err);
@@ -212,18 +222,37 @@ describe('intrahealth-adapter', () => {
           });
       });
     });
-    describe.skip('Practitioner ', () => {
-      it('should handle failing clinic', () => {
+    describe('Practitioner ', () => {
+      it('should handle failing clinic', (done) => {
         // QUESTION: what does failing clinic mean?
         /*
         notes from teleconference,
         first record should be clinic
         if it's not and the id referenced in later records doesn't exist
         */
-        assert.deepEqual('actual', 'expected');
+        chai.request(apiEndpoint)
+          .post(uri)
+          .send(testData.practitionerBadClinic)
+          .end((err, res) => {
+            if (err) done(err);
+            if (err) done(err);
+            expect(res).to.have.status(400);
+            expect(res).to.be.json;
+            expect(res.body.error).to.equal('A clinic_emr_id is required.');
+            done();
+          });
       });
-      it('should successfully insert a record', () => {
-        assert.deepEqual('actual', 'expected');
+      it('should successfully insert a record', (done) => {
+        chai.request(apiEndpoint)
+          .post(uri)
+          .send(testData.practitionerInsert)
+          .end((err, res) => {
+            if (err) done(err);
+            expect(res).to.have.status(200);
+            expect(Array.isArray(res.body)).to.equal(true);
+            expect(res.body).to.have.lengthOf(testData.practitionerInsert.length);
+            done();
+          });
       });
       it('should successfully update a record', () => {
         assert.deepEqual('actual', 'expected');

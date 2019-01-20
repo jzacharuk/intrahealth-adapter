@@ -158,11 +158,12 @@ app.post('/message/', jsonParser, (req, res) => {
                   httpCode: 400,
                   error: selErr,
                 };
+              } else {
+                throwErr = {
+                  httpCode: 500,
+                  error: 'Server error Clinic.selectByEmrId.',
+                };
               }
-              throwErr = {
-                httpCode: 500,
-                error: 'Server error Clinic.selectByEmrId.',
-              };
               throw throwErr;
             }
             if (result) {
@@ -218,6 +219,27 @@ app.post('/message/', jsonParser, (req, res) => {
                     };
                     throw throwErr;
                   }
+                  /*
+                  Practitioner.selectByEmrId(client, msg.emr_id, clinicDbId, (pracSelErr, pracSelRes) => {
+                    if (shouldAbort(pracSelErr)) {
+                      if (typeof pracSelErr === 'string' && pracSelErr.startsWith('multiple clinic rows found')) {
+                        throwErr = {
+                          httpCode: 400,
+                          error: pracSelErr,
+                        };
+                      } else {
+                        throwErr = {
+                          httpCode: 500,
+                          error: 'Server error Clinic.selectByEmrId.',
+                        };
+                      }
+                      throw throwErr;
+                    }
+                    if (pracSelRes) {
+                      // process pracititioner
+                    }
+                  });
+                  */
                   break;
                 case types.Patient:
                   break;

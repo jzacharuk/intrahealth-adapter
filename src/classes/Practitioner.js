@@ -1,8 +1,7 @@
 /* eslint-env */
 /* jshint esversion: 6 */
-const path = require('path');
-const fs = require('fs');
 const Shared = require('./Shared');
+const schema = require('../schemas/Practitioner.json');
 
 module.exports = class Practitioner {
   static getMessageFields() {
@@ -19,13 +18,20 @@ module.exports = class Practitioner {
   }
 
   static getSchema() {
-    return JSON.parse(fs.readFileSync(path.join(__dirname, '../schemas/Practitioner.json')));
+    return schema;
   }
 
-  static selectByEmrId(dbClient, emrId, callback) {
+  static selectByEmrId(dbClient, emrId, clinicId, callback) {
     dbClient.query({
-      text: 'SELECT id, name, hdc_reference, emr_id, emr_reference, emr FROM universal.clinic WHERE emr_id = $1 ;',
-      values: [emrId],
+      text: `
+        SELECT *
+        FROM universal.practitioner;
+        WHERE emr_id = $1 and clinic_id = $2;
+        `,
+      values: [
+        emrId,
+        clinicId,
+      ],
     }, (err, res) => {
       callback(err, res.rows.length ? res.rows[0] : null);
     });

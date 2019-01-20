@@ -36,8 +36,16 @@ module.exports = class Clinic {
 
   static insert(dbClient, ins, callback) {
     dbClient.query({
-      text: 'INSERT INTO universal.clinic(name, hdc_reference, emr_id, emr_reference, emr) VALUES( $1 , $2 , $3 , $4 , $5) RETURNING id ;',
-      values: [ins.name, ins.hdc_reference, ins.emr_id, ins.emr_reference, ins.emr],
+      text: `INSERT INTO universal.clinic 
+        (name, hdc_reference, emr_id, emr_reference, emr) 
+        VALUES ( $1 , $2 , $3 , $4 , $5) RETURNING id ;`,
+      values: [
+        ins.name,
+        ins.hdc_reference,
+        ins.emr_id,
+        ins.emr_reference,
+        ins.emr,
+      ],
     }, (err, res) => {
       if (err) {
         callback(err, null);
@@ -49,8 +57,17 @@ module.exports = class Clinic {
 
   static update(dbClient, upd, callback) {
     dbClient.query({
-      text: 'UPDATE universal.clinic SET name = $3 , hdc_reference = $4 , emr_reference = $5 , emr = $6 WHERE id = $1 AND emr_id = $2 ;',
-      values: [upd.id, upd.emr_id, upd.name, upd.hdc_reference, upd.emr_reference, upd.emr],
+      text: `UPDATE universal.clinic SET 
+        name = $3 , hdc_reference = $4 , emr_reference = $5 , emr = $6 
+        WHERE id = $1 AND emr_id = $2 ;`,
+      values: [
+        upd.id,
+        upd.emr_id,
+        upd.name,
+        upd.hdc_reference,
+        upd.emr_reference,
+        upd.emr,
+      ],
     }, (err, res) => {
       callback(err, res.rowCount);
     });
@@ -58,8 +75,12 @@ module.exports = class Clinic {
 
   static delete(dbClient, del, callback) {
     dbClient.query({
-      text: 'DELETE FROM universal.clinic WHERE id = $1 AND emr_id = $2 ;',
-      values: [del.id, del.emr_id],
+      text: `DELETE FROM universal.clinic 
+        WHERE id = $1 AND emr_id = $2 ;`,
+      values: [
+        del.id,
+        del.emr_id,
+      ],
     }, (err, res) => {
       callback(err, res.rowCount);
     });
