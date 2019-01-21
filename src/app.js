@@ -88,7 +88,7 @@ app.post('/message/', jsonParser, (req, res) => {
     let clinicEmrId = null;
     let clinicDbId = null;
     let firstMessage = null;
-    let clinicMsg = null;
+    let practitionerId = null;
     if (Array.isArray(req.body) && req.body.length) {
       firstMessage = req.body[0];
     } else {
@@ -99,7 +99,6 @@ app.post('/message/', jsonParser, (req, res) => {
       throw throwErr;
     }
     if (firstMessage.message_type === types.Clinic) {
-      clinicMsg = firstMessage;
       clinicEmrId = firstMessage.emr_id;
     } else {
       // TODO: lookup clinic from the first clinc id found in request
@@ -168,7 +167,7 @@ app.post('/message/', jsonParser, (req, res) => {
           const outcome = msg;
           if (result) {
             clinicDbId = result.id;
-            const compResult = Clinic.compare(clinicMsg, result);
+            const compResult = Clinic.compare(msg, result);
             if (compResult === 'invalid') {
               throwErr = {
                 httpCode: 400,
@@ -176,8 +175,9 @@ app.post('/message/', jsonParser, (req, res) => {
               };
               throw throwErr;
             } else if (compResult === 'different') {
-              clinicMsg.id = clinicDbId;
-              Clinic.update(client, clinicMsg, (updErr) => {
+              const upd = msg;
+              upd.id = clinicDbId;
+              Clinic.update(client, upd, (updErr) => {
                 if (shouldAbort(updErr)) {
                   if (typeof updErr === 'string' && updErr.startsWith('multiple')) {
                     throwErr = {
@@ -248,6 +248,7 @@ app.post('/message/', jsonParser, (req, res) => {
           }
           const outcome = msg;
           if (result) {
+            practitionerId = result.id;
             const compResult = Practitioner.compare(msg, result);
             if (compResult === 'invalid') {
               throwErr = {
@@ -256,7 +257,9 @@ app.post('/message/', jsonParser, (req, res) => {
               };
               throw throwErr;
             } else if (compResult === 'different') {
-              Practitioner.update(client, clinicMsg, (updErr) => {
+              const upd = msg;
+              upd.id = practitionerId;
+              Practitioner.update(client, upd, (updErr) => {
                 if (shouldAbort(updErr)) {
                   if (typeof updErr === 'string' && updErr.startsWith('multiple')) {
                     throwErr = {
@@ -273,6 +276,7 @@ app.post('/message/', jsonParser, (req, res) => {
                 }
                 outcome.result = 'Updated';
                 responseArray.push(outcome);
+                callback(index + 1);
               });
             } else if (compResult === 'match') {
               // data matched the database
@@ -290,7 +294,7 @@ app.post('/message/', jsonParser, (req, res) => {
                 };
                 throw throwErr;
               }
-              const pracId = id;
+              practitionerId = id;
               outcome.result = 'Inserted';
               responseArray.push(outcome);
               callback(index + 1);
@@ -298,7 +302,9 @@ app.post('/message/', jsonParser, (req, res) => {
           }
         });
       }; // end processPractitioner()
-      // begin the transaction
+      /*
+        BEGIN THE TRANSACTION
+      */
       client.query('BEGIN', (err) => {
         if (shouldAbort(err)) {
           throwErr = {

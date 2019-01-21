@@ -5,8 +5,15 @@ const schema = require('../schemas/Practitioner.json');
 
 module.exports = class Practitioner {
   static getMessageFields() {
-    // TODO: set to right fields for Entry
-    return ['emr', 'emr_reference', 'hdc_reference'];
+    return [
+      'clinic_emr_id',
+      'name',
+      'identifier',
+      'identifier_type',
+      'emr_id',
+      'emr_reference',
+      // 'role',
+    ];
   }
 
   static getMessageType() {
@@ -62,8 +69,19 @@ module.exports = class Practitioner {
 
   static update(dbClient, upd, callback) {
     dbClient.query({
-      text: 'UPDATE universal.clinic SET name = $3 , hdc_reference = $4 , emr_reference = $5 , emr = $6 WHERE id = $1 AND emr_id = $2 ;',
-      values: [upd.id, upd.emr_id, upd.name, upd.hdc_reference, upd.emr_reference, upd.emr],
+      text: `
+      UPDATE universal.practitioner
+      SET name = $3 , identifier = $4 , identifier_type = $5 , emr_reference = $6
+        WHERE id = $1 and emr_id = $2 `,
+      values: [
+        upd.id,
+        upd.emr_id,
+        upd.name,
+        upd.identifier,
+        upd.identifier_type,
+        upd.emr_reference,
+        // upd.role,
+      ],
     }, (err, res) => {
       if (err) {
         callback(err);
@@ -77,7 +95,7 @@ module.exports = class Practitioner {
 
   static delete(dbClient, del, callback) {
     dbClient.query({
-      text: 'DELETE FROM universal.clinic WHERE id = $1 AND emr_id = $2 ;',
+      text: 'DELETE FROM universal.practitioner WHERE id = $1 AND emr_id = $2 ;',
       values: [del.id, del.emr_id],
     }, (err, res) => {
       callback(err, res.rowCount);

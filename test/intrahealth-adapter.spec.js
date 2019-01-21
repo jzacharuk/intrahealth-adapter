@@ -227,12 +227,6 @@ describe('intrahealth-adapter', () => {
     });
     describe('Practitioner ', () => {
       it('should handle failing clinic', (done) => {
-        // QUESTION: what does failing clinic mean?
-        /*
-        notes from teleconference,
-        first record should be clinic
-        if it's not and the id referenced in later records doesn't exist
-        */
         chai.request(apiEndpoint)
           .post(uri)
           .send(testData.practitionerBadClinic)
@@ -254,14 +248,35 @@ describe('intrahealth-adapter', () => {
             expect(res).to.have.status(200);
             expect(Array.isArray(res.body)).to.equal(true);
             expect(res.body).to.have.lengthOf(testData.practitionerInsert.length);
+            expect(res.body[1].result).to.equal('Inserted');
             done();
           });
       });
-      it('should successfully update a record', () => {
-        assert.deepEqual('actual', 'expected');
+      it('should successfully update a record', (done) => {
+        chai.request(apiEndpoint)
+          .post(uri)
+          .send(testData.practitionerUpdate)
+          .end((err, res) => {
+            if (err) done(err);
+            expect(res).to.have.status(200);
+            expect(Array.isArray(res.body)).to.equal(true);
+            expect(res.body).to.have.lengthOf(testData.practitionerUpdate.length);
+            expect(res.body[1].result).to.equal('Updated');
+            done();
+          });
       });
-      it('should successfully do nothing if no changes', () => {
-        assert.deepEqual('actual', 'expected');
+      it('should successfully do nothing if no changes', (done) => {
+        chai.request(apiEndpoint)
+          .post(uri)
+          .send(testData.practitionerUpdate)
+          .end((err, res) => {
+            if (err) done(err);
+            expect(res).to.have.status(200);
+            expect(Array.isArray(res.body)).to.equal(true);
+            expect(res.body).to.have.lengthOf(testData.practitionerUpdate.length);
+            expect(res.body[0].result).to.equal('No change');
+            done();
+          });
       });
     });
     describe.skip('Patient ', () => {
