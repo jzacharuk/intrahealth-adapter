@@ -22,17 +22,23 @@ module.exports = class Message {
     return JSON.parse(fs.readFileSync(path.join(__dirname, '../schemas/Shared.json')));
   }
 
-  static compare(comp, curr, fields) {
+  static compare(comp, curr, mutFields, keyFields) {
     let result = null;
-    if (comp.emr_id === curr.emr_id) {
-      fields.forEach((field) => {
+    if (Array.isArray(mutFields)) {
+      mutFields.forEach((field) => {
         if (comp[field] !== curr[field]) {
           result = 'different';
         }
       });
-    } else {
-      result = 'invalid';
     }
+    if (Array.isArray(keyFields)) {
+      keyFields.forEach((field) => {
+        if (comp[field] !== curr[field]) {
+          result = 'invalid';
+        }
+      });
+    }
+
     return result || 'match';
   }
 };

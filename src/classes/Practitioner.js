@@ -16,6 +16,21 @@ module.exports = class Practitioner {
     ];
   }
 
+  static getMutableFields() {
+    return ['name', 'identifier', 'identifier_type', 'emr_reference'];
+  }
+
+  static getKeyFields() {
+    /*
+      i removed 'clinic_emr_id',
+      because the database one i compare
+      to does not have it.  If i add
+      it back here, need to make sure
+      the comparing one has it too.
+    */
+    return ['emr_id'];
+  }
+
   static getMessageType() {
     return 'Practitioner';
   }
@@ -103,6 +118,6 @@ module.exports = class Practitioner {
   }
 
   static compare(comp, curr) {
-    return Shared.compare(comp, curr, this.getMessageFields());
+    return Shared.compare(comp, curr, this.getMutableFields(), this.getKeyFields());
   }
 };

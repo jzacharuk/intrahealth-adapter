@@ -88,7 +88,8 @@ app.post('/message/', jsonParser, (req, res) => {
     let clinicEmrId = null;
     let clinicDbId = null;
     let firstMessage = null;
-    let practitionerId = null;
+    let practitionerDbId = null;
+    let patientDbId = null;
     if (Array.isArray(req.body) && req.body.length) {
       firstMessage = req.body[0];
     } else {
@@ -248,7 +249,7 @@ app.post('/message/', jsonParser, (req, res) => {
           }
           const outcome = msg;
           if (result) {
-            practitionerId = result.id;
+            practitionerDbId = result.id;
             const compResult = Practitioner.compare(msg, result);
             if (compResult === 'invalid') {
               throwErr = {
@@ -258,7 +259,7 @@ app.post('/message/', jsonParser, (req, res) => {
               throw throwErr;
             } else if (compResult === 'different') {
               const upd = msg;
-              upd.id = practitionerId;
+              upd.id = practitionerDbId;
               Practitioner.update(client, upd, (updErr) => {
                 if (shouldAbort(updErr)) {
                   if (typeof updErr === 'string' && updErr.startsWith('multiple')) {
@@ -294,7 +295,7 @@ app.post('/message/', jsonParser, (req, res) => {
                 };
                 throw throwErr;
               }
-              practitionerId = id;
+              practitionerDbId = id;
               outcome.result = 'Inserted';
               responseArray.push(outcome);
               callback(index + 1);
@@ -302,6 +303,87 @@ app.post('/message/', jsonParser, (req, res) => {
           }
         });
       }; // end processPractitioner()
+
+      const processPatient = (index, msg, callback) => {
+        if (msg.clinic_emr_id !== clinicEmrId) {
+          throwErr = {
+            httpCode: 400,
+            error: `clinic_emr_id: ${msg.clinic_emr_id} did not match ${clinicEmrId}`,
+          };
+          throw throwErr;
+        }
+
+        Patient.selectByEmrId(client, msg.emr_id, clinicDbId, (selErr, result) => {
+          if (shouldAbort(selErr)) {
+            if (typeof selErr === 'string' && selErr.startsWith('multiple')) {
+              throwErr = {
+                httpCode: 400,
+                error: selErr,
+              };
+            } else {
+              throwErr = {
+                httpCode: 500,
+                error: 'Server error Patient.selectByEmrId().',
+              };
+            }
+            throw throwErr;
+          }
+          const outcome = msg;
+          if (result) {
+            patientDbId = result.id;
+            const compResult = Patient.compare(msg, result);
+            if (compResult === 'invalid') {
+              throwErr = {
+                httpCode: 400,
+                error: `Invalid Patient Update on message[${index}]`,
+              };
+              throw throwErr;
+            } else if (compResult === 'different') {
+              const upd = msg;
+              upd.id = patientDbId;
+              Patient.update(client, upd, (updErr) => {
+                if (shouldAbort(updErr)) {
+                  if (typeof updErr === 'string' && updErr.startsWith('multiple')) {
+                    throwErr = {
+                      httpCode: 400,
+                      error: updErr,
+                    };
+                  } else {
+                    throwErr = {
+                      httpCode: 500,
+                      error: 'Server error Patient.update().',
+                    };
+                  }
+                  throw throwErr;
+                }
+                outcome.result = 'Updated';
+                responseArray.push(outcome);
+                callback(index + 1);
+              });
+            } else if (compResult === 'match') {
+              // data matched the database
+              outcome.result = 'No change';
+              responseArray.push(outcome);
+              callback(index + 1);
+            }
+          } else {
+            // If row does not exist, then insert it using data from message.
+            Patient.insert(client, msg, clinicDbId, (insErr, id) => {
+              if (shouldAbort(insErr)) {
+                throwErr = {
+                  httpCode: 500,
+                  error: 'Server error Patient.insert().',
+                };
+                throw throwErr;
+              }
+              patientDbId = id;
+              outcome.result = 'Inserted';
+              responseArray.push(outcome);
+              callback(index + 1);
+            });
+          }
+        });
+      }; // end processPatient()
       /*
         BEGIN THE TRANSACTION
       */
@@ -341,6 +423,7 @@ app.post('/message/', jsonParser, (req, res) => {
               processPractitioner(index, msg, processNextMessage);
               break;
             case types.Patient:
+              processPatient(index, msg, processNextMessage);
               break;
             case types.PatientPractitioner:
               break;

@@ -47,17 +47,16 @@ report of what happened. INSERTED / UPDATED / NO CHANGE
 describe('intrahealth-adapter', () => {
   describe('POST /message/', () => {
     before('Wipe database to prepare for testing.', (done) => {
-      // make sure that the API is up.
-      // TODO: Wipe database.
+      // TODO: make sure that the API is up.
       const wipeQuery = `
         DELETE FROM universal.attribute;
-        DELETE FROM universal.clinic; 
         DELETE FROM universal.entry;
         DELETE FROM universal.entry_attribute;
         DELETE FROM universal.patient;
         DELETE FROM universal.patient_practitioner;
         DELETE FROM universal.practitioner;
         DELETE FROM universal.state;
+        DELETE FROM universal.clinic;
       `;
       pool.connect((connErr, client, release) => {
         if (connErr) {
@@ -279,19 +278,58 @@ describe('intrahealth-adapter', () => {
           });
       });
     });
-    describe.skip('Patient ', () => {
-      it('should handle failing clinic', () => {
-        // QUESTION: what does failing clinic mean?
-        assert.deepEqual('actual', 'expected');
+    describe('Patient ', () => {
+      it('should handle failing clinic', (done) => {
+        chai.request(apiEndpoint)
+          .post(uri)
+          .send(testData.patientBadClinic)
+          .end((err, res) => {
+            if (err) done(err);
+            if (err) done(err);
+            expect(res).to.have.status(400);
+            expect(res).to.be.json;
+            expect(res.body.error).to.equal('A clinic_emr_id is required.');
+            done();
+          });
       });
-      it('should successfully insert a record', () => {
-        assert.deepEqual('actual', 'expected');
+      it('should successfully insert a record', (done) => {
+        chai.request(apiEndpoint)
+          .post(uri)
+          .send(testData.patientInsert)
+          .end((err, res) => {
+            if (err) done(err);
+            expect(res).to.have.status(200);
+            expect(Array.isArray(res.body)).to.equal(true);
+            expect(res.body).to.have.lengthOf(testData.patientInsert.length);
+            expect(res.body[1].result).to.equal('Inserted');
+            done();
+          });
       });
-      it('should successfully update a record', () => {
-        assert.deepEqual('actual', 'expected');
+      it('should successfully update a record', (done) => {
+        chai.request(apiEndpoint)
+          .post(uri)
+          .send(testData.patientUpdate)
+          .end((err, res) => {
+            if (err) done(err);
+            expect(res).to.have.status(200);
+            expect(Array.isArray(res.body)).to.equal(true);
+            expect(res.body).to.have.lengthOf(testData.patientUpdate.length);
+            expect(res.body[1].result).to.equal('Updated');
+            done();
+          });
       });
-      it('should successfully do nothing if no changes', () => {
-        assert.deepEqual('actual', 'expected');
+      it('should successfully do nothing if no changes', (done) => {
+        chai.request(apiEndpoint)
+          .post(uri)
+          .send(testData.patientUpdate)
+          .end((err, res) => {
+            if (err) done(err);
+            expect(res).to.have.status(200);
+            expect(Array.isArray(res.body)).to.equal(true);
+            expect(res.body).to.have.lengthOf(testData.patientUpdate.length);
+            expect(res.body[0].result).to.equal('No change');
+            done();
+          });
       });
     });
     describe.skip('Entry ', () => {

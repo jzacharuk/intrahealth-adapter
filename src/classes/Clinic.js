@@ -8,6 +8,14 @@ module.exports = class Clinic {
     return ['emr', 'emr_reference', 'hdc_reference'];
   }
 
+  static getMutableFields() {
+    return ['name', 'emr', 'emr_reference', 'hdc_reference'];
+  }
+
+  static getKeyFields() {
+    return ['emr_id'];
+  }
+
   static getMessageType() {
     return 'Clinic';
   }
@@ -95,6 +103,6 @@ module.exports = class Clinic {
   }
 
   static compare(comp, curr) {
-    return Shared.compare(comp, curr, this.getMessageFields());
+    return Shared.compare(comp, curr, this.getMutableFields(), this.getKeyFields());
   }
 };
