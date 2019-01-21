@@ -7,17 +7,17 @@
 const chai = require('chai');
 const chaiHttp = require('chai-http');
 const pg = require('pg');
-const dbDefaults = require('../src/db/defaults.json');
+
+const app = require('../src/app');
 const testData = require('./data');
 
-// const { assert } = chai.assert;
 const assert = chai.assert;
 const expect = chai.expect;
-const apiEndpoint = 'http://localhost:3000';
+
 const uri = '/message/';
 chai.use(chaiHttp);
 
-const pool = new pg.Pool(dbDefaults);
+const pool = new pg.Pool();
 
 /*
 invalid record
@@ -61,7 +61,7 @@ describe('intrahealth-adapter', () => {
       pool.connect((connErr, client, release) => {
         if (connErr) {
           release();
-          done(connErr);
+          return done(connErr);
         }
         client.query({
           text: wipeQuery,
@@ -75,7 +75,7 @@ describe('intrahealth-adapter', () => {
     });
     describe('negative tests, error handling scenarios', () => {
       it('does not allow HTTP GET, returns 404', (done) => { // <= Pass in done callback
-        chai.request(apiEndpoint)
+        chai.request(app)
           .get(uri)
           .end((err, res) => {
             if (err) done(err);
@@ -86,7 +86,7 @@ describe('intrahealth-adapter', () => {
           });
       });
       it('does not allow any other path, returns 404', (done) => { // <= Pass in done callback
-        chai.request(apiEndpoint)
+        chai.request(app)
           .post('/doesnotexist/')
           .send({
             dummy: 'input',
@@ -100,7 +100,7 @@ describe('intrahealth-adapter', () => {
           });
       });
       it('should respond with 415 and the error message on invalid JSON ', (done) => {
-        chai.request(apiEndpoint)
+        chai.request(app)
           .post(uri)
           .set('Content-Type', 'application/json')
           .send('<xml>not JSON</xml>')
@@ -113,7 +113,7 @@ describe('intrahealth-adapter', () => {
           });
       });
       it('should respond with 400 Unexpected message format for schema validation', (done) => {
-        chai.request(apiEndpoint)
+        chai.request(app)
           .post(uri)
           .send([{
             message_type: 'Clinic',
@@ -136,7 +136,7 @@ describe('intrahealth-adapter', () => {
           });
       });
       it('should respond with 400 Unexpected message format for not an array', (done) => {
-        chai.request(apiEndpoint)
+        chai.request(app)
           .post(uri)
           .send({
             message_type: 'Clinic',
@@ -160,7 +160,7 @@ describe('intrahealth-adapter', () => {
       it.skip('should respond with 422 The message received was valid JSON and matches the required JSON Schema; however, the message could not be processed for another reason.', (done) => {
         /* this could be when the timestamp is old,
         or if the id referenced in another message part didn't match */
-        chai.request(apiEndpoint)
+        chai.request(app)
           .post(uri)
           .send({
             message_type: 'Clinic',
@@ -185,7 +185,7 @@ describe('intrahealth-adapter', () => {
     // Clinic specific test cases
     describe('Clinic ', () => {
       it('should successfully insert a Clinic record', (done) => {
-        chai.request(apiEndpoint)
+        chai.request(app)
           .post(uri)
           .send(testData.clinicInsert)
           .end((err, res) => {
@@ -198,7 +198,7 @@ describe('intrahealth-adapter', () => {
           });
       });
       it('should successfully update a record', (done) => {
-        chai.request(apiEndpoint)
+        chai.request(app)
           .post(uri)
           .send(testData.clinicUpdate)
           .end((err, res) => {
@@ -211,7 +211,7 @@ describe('intrahealth-adapter', () => {
           });
       });
       it('should successfully do nothing if no changes', (done) => {
-        chai.request(apiEndpoint)
+        chai.request(app)
           .post(uri)
           .send(testData.clinicUpdate)
           .end((err, res) => {
@@ -226,7 +226,7 @@ describe('intrahealth-adapter', () => {
     });
     describe('Practitioner ', () => {
       it('should handle failing clinic', (done) => {
-        chai.request(apiEndpoint)
+        chai.request(app)
           .post(uri)
           .send(testData.practitionerBadClinic)
           .end((err, res) => {
@@ -239,7 +239,7 @@ describe('intrahealth-adapter', () => {
           });
       });
       it('should successfully insert a record', (done) => {
-        chai.request(apiEndpoint)
+        chai.request(app)
           .post(uri)
           .send(testData.practitionerInsert)
           .end((err, res) => {
@@ -252,7 +252,7 @@ describe('intrahealth-adapter', () => {
           });
       });
       it('should successfully update a record', (done) => {
-        chai.request(apiEndpoint)
+        chai.request(app)
           .post(uri)
           .send(testData.practitionerUpdate)
           .end((err, res) => {
@@ -265,7 +265,7 @@ describe('intrahealth-adapter', () => {
           });
       });
       it('should successfully do nothing if no changes', (done) => {
-        chai.request(apiEndpoint)
+        chai.request(app)
           .post(uri)
           .send(testData.practitionerUpdate)
           .end((err, res) => {
@@ -280,7 +280,7 @@ describe('intrahealth-adapter', () => {
     });
     describe('Patient ', () => {
       it('should handle failing clinic', (done) => {
-        chai.request(apiEndpoint)
+        chai.request(app)
           .post(uri)
           .send(testData.patientBadClinic)
           .end((err, res) => {
@@ -293,7 +293,7 @@ describe('intrahealth-adapter', () => {
           });
       });
       it('should successfully insert a record', (done) => {
-        chai.request(apiEndpoint)
+        chai.request(app)
           .post(uri)
           .send(testData.patientInsert)
           .end((err, res) => {
@@ -306,7 +306,7 @@ describe('intrahealth-adapter', () => {
           });
       });
       it('should successfully update a record', (done) => {
-        chai.request(apiEndpoint)
+        chai.request(app)
           .post(uri)
           .send(testData.patientUpdate)
           .end((err, res) => {
@@ -319,7 +319,7 @@ describe('intrahealth-adapter', () => {
           });
       });
       it('should successfully do nothing if no changes', (done) => {
-        chai.request(apiEndpoint)
+        chai.request(app)
           .post(uri)
           .send(testData.patientUpdate)
           .end((err, res) => {
@@ -332,27 +332,14 @@ describe('intrahealth-adapter', () => {
           });
       });
     });
-    describe.skip('Entry ', () => {
-      it('should handle Patient does not exist', () => {
-        // QUESTION: how should this be handled?
-        assert.deepEqual('actual', 'expected');
-      });
-      it('should handle Entry does not exist', () => {
-        // QUESTION: how should this be handled?
-        assert.deepEqual('actual', 'expected');
-      });
-      it('should successfully insert a record', () => {
-        assert.deepEqual('actual', 'expected');
-      });
-      it('should successfully update a record', () => {
-        assert.deepEqual('actual', 'expected');
-      });
-      it('should successfully do nothing if no changes', () => {
-        assert.deepEqual('actual', 'expected');
-      });
+    describe('Entry ', () => {
+      it('should handle Patient does not exist'); // QUESTION: how should this be handled?
+      it('should handle Entry does not exist'); // QUESTION: how should this be handled?
+      it('should successfully insert a record');
+      it('should successfully update a record');
+      it('should successfully do nothing if no changes');
     });
-    describe.skip('Entry Attribute ', () => {
-      it('should handle Clinic does not exist', () => {
+    describe('Entry Attribute ', () => {
         // QUESTION: how should this be handled?
         /*
           segments are in order so parent/child, so it has to fully succeed
@@ -361,27 +348,14 @@ describe('intrahealth-adapter', () => {
 
           everything should be synchronous
           there will never be a concurrent call for the same clinic
-        */
-        assert.deepEqual('actual', 'expected');
-      });
-      it('should handle Patient does not exist', () => {
-        // QUESTION: how should this be handled?
+        */      
+      it('should handle Clinic does not exist');
+      it('should handle Patient does not exist');
+      it('should handle Entry does not exist'); // QUESTION: how should this be handled?
+      it('should successfully insert a record (no latest)');
+      it('should successfully update a record (latest found)');
+      it('should successfully do nothing if no changes');
 
-        assert.deepEqual('actual', 'expected');
-      });
-      it('should handle Entry does not exist', () => {
-        // QUESTION: how should this be handled?
-        assert.deepEqual('actual', 'expected');
-      });
-      it('should successfully insert a record (no latest)', () => {
-        assert.deepEqual('actual', 'expected');
-      });
-      it('should successfully update a record (latest found)', () => {
-        assert.deepEqual('actual', 'expected');
-      });
-      it('should successfully do nothing if no changes', () => {
-        assert.deepEqual('actual', 'expected');
-      });
     });
   });
 });

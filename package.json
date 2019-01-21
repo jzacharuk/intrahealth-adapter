@@ -1,12 +1,13 @@
 {
   "name": "intrahealth-adapter",
   "version": "1.0.0",
-  "description": "Node.js API to syncrhonize JSON messages",
-  "main": "src/app.js",
+  "description": "API to synchronize Intrahealth JSON messages into Vault.",
+  "main": "src/server.js",
   "dependencies": {
     "ajv": "^6.6.2",
     "async": "^2.6.1",
     "body-parser": "^1.18.3",
+    "dotenv": "^6.2.0",
     "express": "^4.16.4",
     "lodash": "^4.17.11",
     "pg": "^7.7.1",
@@ -22,15 +23,12 @@
     "mocha": "^5.2.0"
   },
   "scripts": {
-    "depcheck": "depcheck",
-    "doc": "jsdoc -c jsdoc.json",
-    "lint": "eslint **/*.js",
     "start": "node src/app.js",
-    "test": "mocha -- ./test/*.spec.js",
-    "build": "pkg . --out-path ./build/",
-    "clean": "rm -rf ./build",
-    "stylecheck": "eslint **/*.js",
-    "check": "run audit, outdated, eslint and depcheck"
+    "test": "mocha ./test -name '*.spec.js' --recursive",
+    "test:watch": "npm test -- --watch",
+    "depcheck": "depcheck",
+    "stylecheck": "eslint src/**/*.js test/**/*.js",
+    "check": "npm audit && npm run stylecheck && npm run depcheck && npm outdated"
   },
   "repository": {
     "type": "git",

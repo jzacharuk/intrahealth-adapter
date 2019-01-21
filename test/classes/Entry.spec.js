@@ -2,15 +2,10 @@
 /* jshint esversion: 6 */
 const chai = require('chai');
 const pg = require('pg');
-const fs = require('fs');
-const path = require('path');
 const Entry = require('../../src/classes/Entry');
-// const { assert } = chai.assert;
+
 const assert = chai.assert;
-
-const dbDefaults = JSON.parse(fs.readFileSync(path.join(__dirname, '../../src/db/defaults.json')));
-
-const pool = new pg.Pool(dbDefaults);
+const pool = new pg.Pool();
 
 describe('Entry class compare function', () => {
   it('should respond with match if they do', () => {
@@ -79,7 +74,7 @@ describe('Entry class SQL validation', () => {
     pool.connect((connErr, client, release) => {
       if (connErr) {
         release();
-        done(connErr);
+        return done(connErr);
       }
       dbClient = client;
       dbRelease = release;
